@@ -8,7 +8,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.action_chains import ActionChains
 
 from locators import (
-    DASHBOARD_URL,
     MENU_X_ALL,
     TEMPLATES_X_DRAWER,
     ADD_X_SENT_CONFIRM_BTN_YES,
@@ -57,6 +56,8 @@ def sign(driver, wait, title=None, IsSequence=False):
     modal_wrap_xpath = "//div[contains(@class,'ant-modal') and contains(@class,'ant-modal-wrap')]"
     draw_signature_msg_xpath = "//div[contains(@class,'ant-message')]//span[normalize-space(text())='Please draw your signature']"
     signature_canvas_css = "canvas[data-v-66a0d92e]"
+
+    input("Paused. Press Enter to continue...")
 
     had_unsigned = False
     while True:

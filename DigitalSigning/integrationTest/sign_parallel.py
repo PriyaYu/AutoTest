@@ -23,7 +23,7 @@ from config import (
     RUN_NEWSENT_SEQUENCE,
 )
 from config import SIGN_EMAIL, SIGN_PASSWORD
-PDF_PATH = "Sequential_Signing_Order_Test.pdf"
+PDF_PATH = os.path.join(PROJECT_ROOT, "Sequential_Signing_Order_Test.pdf")
 
 
 def main() -> None:

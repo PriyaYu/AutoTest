@@ -18,7 +18,7 @@ from unitScript.sign import sign
 from unitScript.utils import _click
 from locators import DASHBOARD_URL, MENU_X_ALL
 from config import SIGN_EMAIL, SIGN_PASSWORD
-PDF_PATH = "Sequential_Signing_Order_Test.pdf"
+PDF_PATH = os.path.join(PROJECT_ROOT, "Sequential_Signing_Order_Test.pdf")
 
 
 def confirm_title_absent(driver, wait, title: str) -> bool:

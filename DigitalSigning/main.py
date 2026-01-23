@@ -16,6 +16,7 @@ from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 
 from unitScript.login import login
+from unitScript.login_validation import login_validation
 from unitScript.add_recipient import add_recipients
 from unitScript.add_newsent import add_newsent
 from unitScript.sign import sign
@@ -24,10 +25,6 @@ from config import (
     RUN_LOGIN,
     RUN_RECIPIENTS,
     RUN_TEMPLATE,
-    RUN_NEWSENT_PARALLEL,
-    RUN_NEWSENT_SEQUENCE,
-    SIGN_EMAIL,
-    SIGN_PASSWORD,
 )
 
 from config import SIGN_PASSWORD
@@ -46,6 +43,7 @@ def main() -> None:
     try:
         # 1) Login (will pause for captcha)
         if RUN_LOGIN:
+            login_validation(driver, wait)
             login(driver, wait)
 
         # 2) Add recipients (requires logged-in session)
@@ -59,30 +57,6 @@ def main() -> None:
         # 4) Add Template
         if RUN_TEMPLATE:
             add_newsent(driver, wait, pdf_path=PDF_PATH, start=1, end=1, IsSequence=False, mode="template")
-
-        # 5) Add New Sent - PARALLEL
-        if RUN_NEWSENT_PARALLEL:
-            parallel_titles = add_newsent(
-                driver, wait, pdf_path=PDF_PATH, start=1, end=1, IsSequence=False, mode="sent"
-            )
-
-        # 6) sign - PARALLE
-        if RUN_NEWSENT_PARALLEL:
-            for email in SIGN_EMAIL:
-                login(driver, wait, NeedLogout= True, email=email, password=SIGN_PASSWORD)
-                sign(driver, wait, title=parallel_titles[-1] if parallel_titles else None, IsSequence=False)
-
-        # 7) Add New Sent - Sequence
-        if RUN_NEWSENT_SEQUENCE:
-            sequence_titles = add_newsent(
-                driver, wait, pdf_path=PDF_PATH, start=1, end=1, IsSequence=True, mode="sent"
-            )
-
-        # 8) sign - Sequence
-        if RUN_NEWSENT_SEQUENCE:
-            for email in SIGN_EMAIL:
-                login(driver, wait, email=email, password=SIGN_PASSWORD)
-                sign(driver, wait, title=sequence_titles[-1] if sequence_titles else None, IsSequence=True)
 
     except Exception as exc:
         print("\n=== 程式中斷：發生錯誤 ===")

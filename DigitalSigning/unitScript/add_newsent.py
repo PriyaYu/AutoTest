@@ -72,7 +72,7 @@ def add_newsent(driver, wait, pdf_path: str, start=1, end=5, IsSequence=False, m
         for idx, recipient in enumerate(recipients[:total_recipients], start=1):
             name = recipient.find_element(By.CSS_SELECTOR, "input#form_item_name")
             name.clear()
-            name.send_keys(f"Recipient_{date_prefix}_-{idx}")
+            name.send_keys(f"{SIGN_EMAIL[idx - 1]}_Recipient")
 
             email = recipient.find_element(By.CSS_SELECTOR, "input#form_item_email")
             email.clear()
