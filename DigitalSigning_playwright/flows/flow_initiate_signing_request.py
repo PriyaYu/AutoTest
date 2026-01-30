@@ -56,13 +56,20 @@ def initiate_signing_request(
 
     if mode == "template":
         flow.save_as_template_button.click()
-        return page, title
+        return page, title    
     
     flow.next_button.click()
 
     for idx in range(len(recipient_emails)):
         flow.signature_field_buttons.nth(idx).click()
 
+    if mode == "draft":
+        page.locator(".ant-drawer-extra > .css-7rjeeh").click()
+        page.get_by_text("Save to Draft").click()
+        expect(page.locator("body")).to_contain_text("Save to draft success")
+        return page, title
+
+    
     flow.send_button.click()
     flow.confirm_yes_button.click()
     flow.ok_button.click()

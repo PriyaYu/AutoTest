@@ -11,7 +11,7 @@ from flows.flow_sign import sign_by_title
 from pages.page_initiate_signing_request import InitiateSigningRequestPage
 
 
-def test_use_template_sent_signing_request(page, sample_pdf_path) -> None:
+def test_use_draft_sent_signing_request(page, sample_pdf_path) -> None:
     login(page)
     sign_emails_raw = os.getenv("SIGN_EMAIL", "")
     recipient_emails = [e.strip() for e in sign_emails_raw.split(",") if e.strip()]
@@ -22,14 +22,16 @@ def test_use_template_sent_signing_request(page, sample_pdf_path) -> None:
     _, title = initiate_signing_request(
         page=page,
         pdf_path=sample_pdf_path,
-        mode="template",
+        mode="draft",
         recipient_emails=recipient_emails,
     )
 
     flow = InitiateSigningRequestPage(page)
-    flow.menu.templates_tab.click()
-    flow.search_all_contacts_input.fill(title)
-    flow.search_all_contacts_input.press("Enter")
+    flow.menu.drafts_tab.click()
+    search_box = page.get_by_role("textbox", name="Search Draft")
+    expect(search_box).to_be_visible()
+    search_box.fill(title)
+    search_box.press("Enter")
     row = page.locator("tr", has=page.get_by_text(title, exact=True)).first
     expect(row).to_be_visible()
     row.get_by_role("button", name="Use").click()

@@ -1,22 +1,30 @@
+import os
+import re
+import time
+
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import expect
 
 from pages.page_dialog import Dialog
 from pages.page_menu import Menu
+from flows.flow_mail_check import confirm_mail_received
 
 
-def sign_by_title(page, title: str) -> None:
+def sign_by_title(page, title: str, signer_email: str = None) -> None:
     expect(Menu(page).all_tab).to_be_visible()
     Menu(page).all_tab.click()
 
+    wait_timeout = float(os.getenv("SIGN_TITLE_WAIT_TIMEOUT", "60"))
+    wait_interval = float(os.getenv("SIGN_TITLE_WAIT_INTERVAL", "5"))
     row = None
-    for attempt in range(2):
+    deadline = time.time() + wait_timeout
+    while time.time() < deadline:
         row = page.locator("tr", has=page.get_by_text(title, exact=True)).first
         if row.count() > 0:
             break
-        if attempt == 0:
-            page.reload()
-            Menu(page).all_tab.click()
+        page.reload()
+        Menu(page).all_tab.click()
+        time.sleep(wait_interval)
 
     if row is None or row.count() == 0:
         raise ValueError(f"Sign button not found for title: {title}")
@@ -90,3 +98,28 @@ def sign_by_title(page, title: str) -> None:
         dialog.yes_button.click()
         expect(sign_page.get_by_text("SUBMISSION SUCCESS")).to_be_visible()
         dialog.ok_button.click()
+    # Verify status is Completed for current signer in All tab (with retry).
+    status_timeout = float(os.getenv("SIGN_STATUS_WAIT_TIMEOUT", "60"))
+    status_interval = float(os.getenv("SIGN_STATUS_WAIT_INTERVAL", "5"))
+    deadline = time.time() + status_timeout
+    while True:
+        expect(Menu(page).all_tab).to_be_visible()
+        Menu(page).all_tab.click()
+        status_row = page.locator("tr", has=page.get_by_text(title, exact=True)).first
+        expect(status_row).to_be_visible()
+        if status_row.get_by_text("Completed").first.is_visible():
+            break
+        row_text = status_row.inner_text()
+        match = re.search(r"Waiting\s+for\s+(\d+)\s+others?", row_text, re.IGNORECASE)
+        if match:
+            print(f"[DEBUG] waiting for {match.group(1)} others")
+            sender_email = os.getenv("LOGIN_DEFAULT_EMAIL", "")
+            if sender_email and signer_email != sender_email:
+                confirm_mail_received("A signer has completed the document", recipient=sender_email)
+            return
+        if time.time() >= deadline:
+            raise ValueError(f"Status not Completed for title: {title}")
+        page.reload()
+        time.sleep(status_interval)
+
+    # Completed: no mail required here.

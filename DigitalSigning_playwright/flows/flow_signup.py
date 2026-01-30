@@ -22,7 +22,8 @@ def signup(
     base = os.getenv("WEBSITE_URL", "https://sign.nextore.io")
     if email is None:
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-        email = f"zihsyuan0603+{timestamp}@gmail.com"
+        base_alias = os.getenv("SIGNUP_ALIAS_BASE", "")
+        email = f"{base_alias}+{timestamp}@gmail.com"
     if password is None:
         password = os.getenv("SIGNUP_PASSWORD", "Zxc12345")
     if verification_code is None:
@@ -43,7 +44,7 @@ def signup(
         if use_mailtrap:
             verification_code = _fetch_verification_code_from_mailtrap(email)
         if not verification_code:
-            verification_code = input("Enter verification code from email: ").strip()
+            verification_code = input('[Email Notification] Receive "Verify your email address" then enter verification code: ').strip()
     if not verification_code:
         raise ValueError("Verification code is required but not set")
     page.get_by_role("textbox").first.fill(verification_code)

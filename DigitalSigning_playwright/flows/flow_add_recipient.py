@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 
 from playwright.sync_api import expect
@@ -7,7 +8,8 @@ from pages.page_menu import Menu
 
 def add_recipient(page) -> None:
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-    alias = f"zihsyuan0603+{timestamp}"
+    base_alias = os.getenv("RECIPIENT_ALIAS_BASE", "")
+    alias = f"{base_alias}+{timestamp}"
     name = alias
     email = f"{alias}@gmail.com"
     job_title = f"JH_{alias}"
