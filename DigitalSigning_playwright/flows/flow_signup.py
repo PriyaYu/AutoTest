@@ -10,6 +10,36 @@ from playwright.sync_api import expect
 from pages.page_login import LoginPage
 
 
+def _focus_terminal():
+    import os
+    import platform
+    if platform.system() == "Darwin":
+        try:
+            term = os.environ.get("TERM_PROGRAM", "")
+            if term == "Apple_Terminal":
+                app = "Terminal"
+            elif term == "iTerm.app":
+                app = "iTerm"
+            elif term == "vscode":
+                app = "Visual Studio Code"
+            else:
+                app = "Terminal"
+            os.system(f"osascript -e 'tell application \"{app}\" to activate'")
+        except Exception:
+            pass
+
+def _focus_browser():
+    import os
+    import platform
+    if platform.system() == "Darwin":
+        try:
+            # Playwright browser might be Chromium or Google Chrome
+            os.system("osascript -e 'tell application \"Chromium\" to activate' >/dev/null 2>&1")
+            os.system("osascript -e 'tell application \"Google Chrome\" to activate' >/dev/null 2>&1")
+            os.system("osascript -e 'tell application \"Google Chrome for Testing\" to activate' >/dev/null 2>&1")
+        except Exception:
+            pass
+
 def signup(
     page,
     email=None,
@@ -33,7 +63,7 @@ def signup(
     if last_name is None:
         last_name = os.getenv("SIGNUP_LAST_NAME", "ZIH")
 
-    page.goto(f"{base}/ds#/signup")
+    page.goto(f"{base}/#/signup")
 
     #page.get_by_text("Sign Up").click()
     page.get_by_role("textbox").first.fill(email)
@@ -44,7 +74,10 @@ def signup(
         if use_mailtrap:
             verification_code = _fetch_verification_code_from_mailtrap(email)
         if not verification_code:
+            _focus_terminal()
             verification_code = input('[Email Notification] Receive "Verify your email address" then enter verification code: ').strip()
+            page.bring_to_front()
+            _focus_browser()
     if not verification_code:
         raise ValueError("Verification code is required but not set")
     page.get_by_role("textbox").first.fill(verification_code)
@@ -56,6 +89,7 @@ def signup(
     page.get_by_role("textbox").nth(1).fill(last_name)
     page.get_by_role("textbox").nth(1).press("Tab")
     page.locator("input[type=\"password\"]").fill(password)
+    page.get_by_label("", exact=True).check()
     page.get_by_text("Continue").click()
     expect(page.get_by_text("SEND SUCCESS")).to_be_visible()
     page.get_by_role("button", name="Ok").click()

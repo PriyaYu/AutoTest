@@ -15,7 +15,7 @@ def add_recipient(page) -> None:
     job_title = f"JH_{alias}"
     search_term = name
 
-    if "/ds#/frequent-contacts" not in page.url:
+    if "/#/frequent-contacts" not in page.url:
         Menu(page).frequent_contacts_tab.click()
     page.get_by_role("button", name="Add Recipient").click()
     page.get_by_role("textbox", name="* Name").fill(name)

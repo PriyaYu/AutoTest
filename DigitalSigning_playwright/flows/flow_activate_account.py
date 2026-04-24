@@ -12,7 +12,11 @@ def activate_account(page, verify_url, otp=None, password=None):
     expect(page.get_by_role("heading", name="Verify OTP")).to_be_visible()
     page.get_by_role("button", name="GENERATE OTP").click()
     if otp is None:
+        from flows.flow_signup import _focus_terminal, _focus_browser
+        _focus_terminal()
         otp = input("[Mail Notification] Enter OTP from email (run pytest -s): ").strip()
+        page.bring_to_front()
+        _focus_browser()
     if not otp:
         raise ValueError("OTP is required but not set")
     page.get_by_role("textbox", name="OTP").fill(otp)

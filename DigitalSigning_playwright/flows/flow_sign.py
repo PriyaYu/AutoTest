@@ -10,7 +10,7 @@ from pages.page_menu import Menu
 from flows.flow_mail_check import confirm_mail_received
 
 
-def sign_by_title(page, title: str, signer_email: str = None) -> None:
+def sign_by_title(page, title: str, signer_email: str = None, use_iamsmart: bool = False) -> None:
     expect(Menu(page).all_tab).to_be_visible()
     Menu(page).all_tab.click()
 
@@ -92,12 +92,27 @@ def sign_by_title(page, title: str, signer_email: str = None) -> None:
 
     print(f"[DEBUG] had_unsigned: {had_unsigned}")
     if had_unsigned:
-        confirm_button = sign_page.get_by_role("button", name="Confirm")
-        confirm_button.click()
-        dialog = Dialog(sign_page)
-        dialog.yes_button.click()
-        expect(sign_page.get_by_text("SUBMISSION SUCCESS")).to_be_visible()
-        dialog.ok_button.click()
+        if use_iamsmart:
+            # iAM Smart 簽署
+            confirm_button = sign_page.get_by_role("button", name=re.compile(r"Continue with iAM Smart", re.IGNORECASE))
+            confirm_button.click()
+            # 這裡可能不會有對話框，或者需要等待成功畫面/跳轉，依據系統實際行為。
+            dialog = Dialog(sign_page) # 保留宣告以備不時之需
+            dialog.yes_button.click()
+        else:
+            # 一般簽署
+            confirm_button = sign_page.get_by_role("button", name="Confirm")
+            confirm_button.click()
+            dialog = Dialog(sign_page)
+            dialog.yes_button.click()
+
+        # 延長 timeout 時間並使用包含比對，避免載入比較慢或是文字有些微不同
+        expect(sign_page.locator("body")).to_contain_text(re.compile(r"SUBMISSION SUCCESS", re.IGNORECASE), timeout=15000)
+        # 有些按鈕是 "Ok"，有些是 "OK"，用正規表示式或是尋找頁面上的 OK/Ok
+        try:
+            sign_page.get_by_role("button", name=re.compile(r"^ok$", re.IGNORECASE)).click()
+        except Exception:
+            dialog.ok_button.click()
     # Verify status is Completed for current signer in All tab (with retry).
     status_timeout = float(os.getenv("SIGN_STATUS_WAIT_TIMEOUT", "60"))
     status_interval = float(os.getenv("SIGN_STATUS_WAIT_INTERVAL", "5"))

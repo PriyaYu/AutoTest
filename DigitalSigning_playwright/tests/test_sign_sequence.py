@@ -78,9 +78,11 @@ def test_sign_sequence_validation(page, sample_pdf_path, sender_position) -> Non
                 return row
             page.reload()
             time.sleep(2)
-        input("[PAUSE] mismatch detected. Press Enter to continue...")
-        return row
-
+            from flows.flow_signup import _focus_terminal, _focus_browser
+            _focus_terminal()
+            input("[PAUSE] mismatch detected. Press Enter to continue...")
+            _focus_browser()
+            return row
     print(f"[DEBUG] sign_emails: {sign_emails}")
 
     for i, signer_email in enumerate(sign_emails):

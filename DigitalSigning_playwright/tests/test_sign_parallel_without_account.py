@@ -39,7 +39,7 @@ def test_sign_parallel(page, sample_pdf_path) -> None:
             # NOTE: The appended account ({SIGNUP_ALIAS_BAS}+YYYYMMDDHHMMSS@gmail.com) must manually
             # check the inbox and sign; email receiving is not automated yet.
             # NOTE: Inbox email sample:
-            # "Dear User, Please go to for signing Document: https://sign.nextore.io/DS#/verify-otp?token=..."
+            # "Dear User, Please go to for signing Document: https://sign.nextore.io/#/verify-otp?token=..."
             verify_url = prompt_verify_url()
             activate_account(page, verify_url=verify_url)
         
