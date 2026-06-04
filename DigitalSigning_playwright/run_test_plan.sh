@@ -34,11 +34,13 @@ run_test() {
 #run_test "test_account_signup" "pytest -s tests/test_account_signup.py"
 #run_test "test_account_login" "pytest -s tests/test_account_login.py"
 #run_test "test_account_forgot_password" "pytest -s tests/test_account_forgot_password.py"
-run_test "test_account_bind_iamsmart" "pytest -s tests/test_account_bind_iamsmart.py"
-run_test "test_account_reigister_iamsmart" "pytest -s tests/test_account_reigister_iamsmart.py"
+#run_test "test_account_bind_iamsmart" "pytest -s tests/test_account_bind_iamsmart.py"
+#run_test "test_account_reigister_iamsmart" "pytest -s tests/test_account_reigister_iamsmart.py"
 
 # Setup
-#run_test "test_add_recipient" "pytest -s tests/test_add_recipient.py"
+run_test "test_add_recipient" "pytest -s tests/test_add_recipient.py"
+run_test "test_edit_recipient" "pytest -s tests/test_edit_recipient.py"
+run_test "test_delete_recipient" "pytest -s tests/test_delete_recipient.py"
 #run_test "test_add_template_validation" "pytest -s tests/test_add_template_validation.py"
 #run_test "test_add_draft_validation" "pytest -s tests/test_add_draft_validation.py"
 #run_test "test_my_signature" "pytest -s tests/test_my_signature.py"

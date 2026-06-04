@@ -23,19 +23,35 @@ def test_sign_parallel_iamsmart(page, sample_pdf_path) -> None:
     page.goto(f"{base}/#/login")
     page.get_by_text("Continue with iAM Smart").click()
     
-    print("[DEBUG] 請掃描 QR Code 進行登入預先驗證...")
+    # 給予 60 秒的時間讓使用者掃描 QR Code。
+    # 同時監聽 "Welcome back" 或 "Could not find account"，只要其中一個出現就不會繼續白等 60 秒。
+    is_bound = False
+    print("[DEBUG] Waiting for user to scan iAM Smart QR code...")
     try:
-        # 給予 60 秒的時間掃描。先用 iamsmart登入看看，如果有 Could not find account 代表是乾淨的狀態
-        expect(page.locator("body")).to_contain_text(re.compile(r"Could not find account", re.IGNORECASE), timeout=60000)
-        print("[DEBUG] 'Could not find account' verified. Environment is clean.")
-    except Exception:
-        # 如果沒有出現，代表可能成功登入了，我們就執行解除綁定
-        print("[DEBUG] Account might be already bound. Attempting to unregister.")
+        welcome_locator = page.get_by_role("heading", name=re.compile(r"^Welcome back", re.IGNORECASE))
+        not_found_locator = page.get_by_text(re.compile(r"Could not find account", re.IGNORECASE))
+        
+        expect(welcome_locator.or_(not_found_locator).first).to_be_visible(timeout=60000)
+        
+        if welcome_locator.is_visible():
+            is_bound = True
+    except Exception as e:
+        print(f"[DEBUG] Timeout waiting for QR scan: {e}")
+
+    if is_bound:
+        # 如果出現 Welcome back，代表可能成功登入了，我們就執行解除綁定
+        print("[DEBUG] 'Welcome back' visible. Account might be already bound. Attempting to unregister.")
         try:
             register_iamSmart(page, action="unregister")
             print("[DEBUG] Successfully unregistered during pre-check.")
+            page.context.clear_cookies()
+            page.evaluate("() => { localStorage.clear(); sessionStorage.clear(); }")
         except Exception as e:
             print(f"[DEBUG] Failed to unregister during pre-check: {e}")
+    else:
+        # 如果沒有出現 Welcome back，代表應該是乾淨狀態，確認是否出現 Could not find account
+        expect(page.locator("body")).to_contain_text(re.compile(r"Could not find account", re.IGNORECASE))
+        print("[DEBUG] 'Could not find account' verified. Environment is clean.")
 
     # 回到登入頁，準備開始正式的註冊流程
     page.goto(f"{base}/#/login")
