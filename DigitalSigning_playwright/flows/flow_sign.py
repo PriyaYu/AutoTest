@@ -11,18 +11,23 @@ from flows.flow_mail_check import confirm_mail_received
 
 
 def sign_by_title(page, title: str, signer_email: str = None, use_iamsmart: bool = False) -> None:
-    expect(Menu(page).all_tab).to_be_visible()
+    expect(Menu(page).all_tab).to_be_visible(timeout=20000)
     Menu(page).all_tab.click()
 
     wait_timeout = float(os.getenv("SIGN_TITLE_WAIT_TIMEOUT", "60"))
-    wait_interval = float(os.getenv("SIGN_TITLE_WAIT_INTERVAL", "5"))
+    wait_interval = float(os.getenv("SIGN_TITLE_WAIT_INTERVAL", "10"))  # Increased to 10s to allow data to load
     row = None
     deadline = time.time() + wait_timeout
     while time.time() < deadline:
+        # Wait a moment for the table to potentially render before checking
+        page.wait_for_timeout(3000)
         row = page.locator("tr", has=page.get_by_text(title, exact=True)).first
         if row.count() > 0:
             break
+        print("[DEBUG] Title not found yet, reloading page to check again...")
         page.reload()
+        # Wait for the menu tab to be ready and click it
+        expect(Menu(page).all_tab).to_be_visible(timeout=20000)
         Menu(page).all_tab.click()
         time.sleep(wait_interval)
 
@@ -118,7 +123,7 @@ def sign_by_title(page, title: str, signer_email: str = None, use_iamsmart: bool
     status_interval = float(os.getenv("SIGN_STATUS_WAIT_INTERVAL", "5"))
     deadline = time.time() + status_timeout
     while True:
-        expect(Menu(page).all_tab).to_be_visible()
+        expect(Menu(page).all_tab).to_be_visible(timeout=20000)
         Menu(page).all_tab.click()
         status_row = page.locator("tr", has=page.get_by_text(title, exact=True)).first
         expect(status_row).to_be_visible()
