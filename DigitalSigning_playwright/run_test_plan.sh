@@ -39,8 +39,7 @@ run_test() {
 
 # Setup
 run_test "test_dashboard" "pytest -s tests/test_dashboard.py"
-# Skipped: username validation rejects valid names — pending backend fix
-#run_test "test_change_full_name" "pytest -s tests/test_change_full_name.py"
+run_test "test_change_full_name" "pytest -s tests/test_change_full_name.py"
 run_test "test_add_recipient" "pytest -s tests/test_add_recipient.py"
 run_test "test_edit_recipient" "pytest -s tests/test_edit_recipient.py"
 run_test "test_delete_recipient" "pytest -s tests/test_delete_recipient.py"
