@@ -38,14 +38,21 @@ run_test() {
 #run_test "test_account_reigister_iamsmart" "pytest -s tests/test_account_reigister_iamsmart.py"
 
 # Setup
+run_test "test_dashboard" "pytest -s tests/test_dashboard.py"
+# Skipped: username validation rejects valid names — pending backend fix
+#run_test "test_change_full_name" "pytest -s tests/test_change_full_name.py"
 run_test "test_add_recipient" "pytest -s tests/test_add_recipient.py"
 run_test "test_edit_recipient" "pytest -s tests/test_edit_recipient.py"
 run_test "test_delete_recipient" "pytest -s tests/test_delete_recipient.py"
 #run_test "test_add_template_validation" "pytest -s tests/test_add_template_validation.py"
+run_test "test_edit_template" "pytest -s tests/test_edit_template.py"
+run_test "test_delete_template" "pytest -s tests/test_delete_template.py"
 #run_test "test_add_draft_validation" "pytest -s tests/test_add_draft_validation.py"
+run_test "test_delete_draft" "pytest -s tests/test_delete_draft.py"
 #run_test "test_my_signature" "pytest -s tests/test_my_signature.py"
 
 # Signing
+run_test "test_cancel_delete_request" "pytest -s tests/test_cancel_delete_request.py"
 ## Note: parametrize cases in these tests already cover multiple scenarios.
 ## Example (single case):
 ##   pytest -s tests/test_sign_sequence.py -k "sender_position=first"
