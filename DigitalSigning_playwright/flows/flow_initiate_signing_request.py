@@ -40,6 +40,11 @@ def initiate_signing_request(
     #     flow.upload_button.click()
     # fc.value.set_files(str(pdf_path))
 
+    # Upload is async (~several seconds). Wait for the document to appear in the
+    # doc list before continuing, otherwise saving/sending raises
+    # "Please upload at least one document".
+    expect(page.locator(".one-doc").first).to_be_visible(timeout=60000)
+
 
     if IsSequence:
         flow.set_sequence_checkbox.check()
