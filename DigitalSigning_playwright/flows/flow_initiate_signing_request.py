@@ -12,6 +12,7 @@ def initiate_signing_request(
     recipient_emails=None,
     IsSequence=False,
     mode=None,
+    save_to_fc=None,
 ):
     flow = InitiateSigningRequestPage(page)
     if recipient_emails is None:
@@ -57,6 +58,14 @@ def initiate_signing_request(
         flow.name_inputs.nth(idx - 1).fill(f"{email}_Recipient")
         flow.email_inputs.nth(idx - 1).fill(email)
         flow.role_inputs.nth(idx - 1).fill(f"Recipient_JT_{date_prefix}_-{idx}")
+
+    # Optionally tick each recipient's "Save to Frequent Contact" checkbox.
+    if save_to_fc:
+        for idx, want in enumerate(save_to_fc):
+            if want:
+                checkbox = flow.save_to_fc_checkboxes.nth(idx)
+                checkbox.check(force=True)
+                expect(checkbox).to_be_checked()
 
     flow.subject_input.fill(title)
 

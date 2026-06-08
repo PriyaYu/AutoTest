@@ -35,6 +35,10 @@ class InitiateSigningRequestPage:
         return self.page.locator("#form_item_role")
 
     @property
+    def save_to_fc_checkboxes(self):
+        return self.page.locator("#form_item_saveToFrequenctContact")
+
+    @property
     def new_recipient_button(self):
         return self.page.get_by_role("button", name="New Recipient")
 
