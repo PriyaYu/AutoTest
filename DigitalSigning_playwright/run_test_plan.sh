@@ -36,6 +36,7 @@ run_test() {
 #run_test "test_account_forgot_password" "pytest -s tests/test_account_forgot_password.py"
 #run_test "test_account_bind_iamsmart" "pytest -s tests/test_account_bind_iamsmart.py"
 #run_test "test_account_reigister_iamsmart" "pytest -s tests/test_account_reigister_iamsmart.py"
+run_test "test_logout" "pytest -s tests/test_logout.py"
 
 # Setup
 run_test "test_dashboard" "pytest -s tests/test_dashboard.py"
