@@ -33,17 +33,18 @@ def initiate_signing_request(
         flow.start_button.click()
 
 
-    # A) 直接設定 input（較穩、較快）
-    flow.file_input.set_input_files(str(pdf_path))
+    # A) 直接設定 input（較穩、較快）。pdf_path 可為單一路徑或多個路徑（多文件請求）。
+    # 每次 set_input_files 會「新增」一份文件，所以逐一上傳並等待份數到位。
+    # Upload is async (~several seconds); waiting before continuing avoids the
+    # "Please upload at least one document" error on save/send.
+    paths = list(pdf_path) if isinstance(pdf_path, (list, tuple)) else [pdf_path]
+    for idx, single_path in enumerate(paths, start=1):
+        flow.file_input.set_input_files(str(single_path))
+        expect(page.locator(".one-doc")).to_have_count(idx, timeout=60000)
     # B) 人類操作路徑（點 Upload 開視窗，再選檔）
     # with page.expect_file_chooser() as fc:
     #     flow.upload_button.click()
     # fc.value.set_files(str(pdf_path))
-
-    # Upload is async (~several seconds). Wait for the document to appear in the
-    # doc list before continuing, otherwise saving/sending raises
-    # "Please upload at least one document".
-    expect(page.locator(".one-doc").first).to_be_visible(timeout=60000)
 
 
     if IsSequence:

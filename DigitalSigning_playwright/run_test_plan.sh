@@ -56,6 +56,7 @@ run_test "test_my_signature" "pytest -s tests/test_my_signature.py"
 run_test "test_cancel_delete_request" "pytest -s tests/test_cancel_delete_request.py"
 run_test "test_view_request" "pytest -s tests/test_view_request.py"
 run_test "test_resend_request" "pytest -s tests/test_resend_request.py"
+run_test "test_multi_document_request" "pytest -s tests/test_multi_document_request.py"
 ## Note: parametrize cases in these tests already cover multiple scenarios.
 ## Example (single case):
 ##   pytest -s tests/test_sign_sequence.py -k "sender_position=first"
