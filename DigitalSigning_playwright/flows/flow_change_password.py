@@ -93,8 +93,13 @@ def _attempt(page, old, new) -> bool:
     return False
 
 
+# The history policy blocks reusing the last 10 passwords, so we must set this
+# many fresh passwords before the default falls out of the window.
+_HISTORY_SIZE = 10
+
+
 def change_password(page) -> dict:
-    """Change the password to a new value, verify it works, then cycle through
+    """Change the password to a new value, verify it works, then move through
     enough fresh passwords to legitimately set it back to the original default
     (the app forbids reusing any of the last 10 passwords)."""
     assert DEFAULT, "LOGIN_DEFAULT_PASSWORD must be set"
@@ -102,34 +107,34 @@ def change_password(page) -> dict:
     current = _current_password(page)
     assert current, "Could not determine the current password"
 
-    def _next_pool(after):
-        for p in _POOL:
-            if p != after:
-                return p
-        raise AssertionError("pool exhausted")
+    pi = 0
 
-    # 1) Change to a fresh password and confirm the new one works.
-    first = _next_pool(current)
-    assert _attempt(page, current, first), "Initial password change was rejected"
-    current = first
+    def _advance(from_pw):
+        """Change to the next pool password that is accepted; return it."""
+        nonlocal pi
+        while pi < len(_POOL):
+            candidate = _POOL[pi]
+            pi += 1
+            if candidate == from_pw:
+                continue
+            if _attempt(page, from_pw, candidate):
+                return candidate
+        raise AssertionError("Ran out of pool passwords")
 
-    # 2) Restore the default, cycling through fresh passwords whenever the
-    #    last-10 policy blocks it.
-    used = {current}
-    for _ in range(len(_POOL)):
+    # 1) Change to a fresh password (this also verifies the new one can log in).
+    current = _advance(current)
+
+    # 2) Set enough more fresh passwords to push the default out of the
+    #    last-10 window — counted, no wasteful "try default every round".
+    for _ in range(_HISTORY_SIZE - 1):
+        current = _advance(current)
+
+    # 3) Restore the default. A small fallback covers any off-by-one in how the
+    #    policy counts the window.
+    for _ in range(5):
         if _attempt(page, current, DEFAULT):
             assert _logged_in(page)
             return {"changed": True, "restored": True}
-        advanced = False
-        for cand in _POOL:
-            if cand in used:
-                continue
-            used.add(cand)
-            if _attempt(page, current, cand):
-                current = cand
-                advanced = True
-                break
-        if not advanced:
-            break
+        current = _advance(current)
 
-    raise AssertionError("Could not restore the default password within the pool")
+    raise AssertionError("Could not restore the default password")
