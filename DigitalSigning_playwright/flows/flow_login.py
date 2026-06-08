@@ -22,13 +22,18 @@ def login(page, email=None, password=None, captcha=None, force_login=False, hand
         page.goto(f"{base}/#/login")
 
     print(f"[DEBUG] login email: {email}")
-    page = (
-        LoginPage(page)
-        .fill_email(email)
-        .fill_password(password)
-        .fill_captcha(captcha)
-        .submit()
-    )
+    login_page = LoginPage(page).fill_email(email).fill_password(password)
+    # Refresh the captcha (click the image to regenerate it) before filling it.
+    # A stale captcha token — e.g. after a password-change redirect — makes the
+    # fixed staging value fail; a fresh token accepts it again.
+    try:
+        captcha_img = page.locator(".captcha img, img[alt=captcha]").first
+        if captcha_img.count() > 0:
+            captcha_img.click()
+            page.wait_for_timeout(800)
+    except Exception:
+        pass
+    page = login_page.fill_captcha(captcha).submit()
 
     try:
         if handle_notice:
