@@ -6,34 +6,24 @@ from flows.flow_login import login
 
 
 def _draw_signature(page):
+    canvas = page.locator("canvas").first
+    expect(canvas).to_be_visible()
+    box = None
     for _ in range(3):
-        canvas = page.locator("canvas").first
-        expect(canvas).to_be_visible()
-        try:
-            box = canvas.bounding_box()
-            if not box:
-                raise PlaywrightTimeoutError("Canvas bounding box not available")
-            centre_x = box["x"] + 220
-            centre_y = box["y"] + 150
-            page.mouse.move(centre_x, centre_y)
-            page.mouse.down()
-            # Draw a 5-petal flower using a rose curve.
-            for i in range(0, 361, 6):
-                angle = math.radians(i)
-                radius = 45 * math.cos(5 * angle)
-                x = centre_x + radius * math.cos(angle)
-                y = centre_y + radius * math.sin(angle)
-                page.mouse.move(x, y)
-            page.mouse.up()
-            return
-        except PlaywrightTimeoutError:
-            page.wait_for_timeout(500)
-    box = canvas.bounding_box()
+        box = canvas.bounding_box()
+        if box:
+            break
+        page.wait_for_timeout(500)
+    if not box:
+        raise PlaywrightTimeoutError("Canvas bounding box not available")
+
     centre_x = box["x"] + 220
     centre_y = box["y"] + 150
     page.mouse.move(centre_x, centre_y)
     page.mouse.down()
-    for i in range(0, 361, 6):
+    # A coarse rose curve. Few points keeps drawing fast under slow_mo while
+    # still laying down enough ink to enable Save.
+    for i in range(0, 361, 30):
         angle = math.radians(i)
         radius = 45 * math.cos(5 * angle)
         x = centre_x + radius * math.cos(angle)
@@ -55,8 +45,15 @@ def test_my_signature(page) -> None:
     page.get_by_text("My Signature").click()
     expect(page.get_by_role("main").get_by_text("My Signature")).to_be_visible()
 
+    # An existing signature loads slowly; checking too early wrongly reports
+    # "no signature" and desyncs the rest of the flow (the page is actually in
+    # Replace/Remove mode, which has no Save button). Wait for it to load.
     replace_btn = page.get_by_text("Replace")
-    has_signature = replace_btn.count() > 0 and replace_btn.first.is_visible()
+    try:
+        replace_btn.first.wait_for(state="visible", timeout=15000)
+        has_signature = True
+    except PlaywrightTimeoutError:
+        has_signature = False
 
     if has_signature:
         # Start clean so the flow is deterministic.

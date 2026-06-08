@@ -49,7 +49,7 @@ run_test "test_edit_template" "pytest -s tests/test_edit_template.py"
 run_test "test_delete_template" "pytest -s tests/test_delete_template.py"
 #run_test "test_add_draft_validation" "pytest -s tests/test_add_draft_validation.py"
 run_test "test_delete_draft" "pytest -s tests/test_delete_draft.py"
-#run_test "test_my_signature" "pytest -s tests/test_my_signature.py"
+run_test "test_my_signature" "pytest -s tests/test_my_signature.py"
 
 # Signing
 run_test "test_cancel_delete_request" "pytest -s tests/test_cancel_delete_request.py"
