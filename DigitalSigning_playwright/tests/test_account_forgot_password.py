@@ -11,7 +11,7 @@ from flows.flow_login import login
 def test_account_forgot_password(page) -> None:
     base = os.getenv("WEBSITE_URL", "https://sign.nextore.io")
     email, old_password = signup(page)
-    new_password = os.getenv("FORGOT_PASSWORD_NEW_PASSWORD", "Zxc123456")
+    new_password = os.getenv("FORGOT_PASSWORD_NEW_PASSWORD", "Nx7p$Qm2k")
     verification_code = os.getenv("FORGOT_PASSWORD_CODE", "")
 
     page.goto(f"{base}/#/login")
@@ -24,7 +24,7 @@ def test_account_forgot_password(page) -> None:
     if not verification_code:
         _focus_terminal()
         verification_code = input(
-            '[Email Notification] Receive "Forgot Password" verification email then enter code: '
+            '[Email Notification] Receive "Verify your email address" verification email then enter code: '
         ).strip()
         page.bring_to_front()
         _focus_browser()
