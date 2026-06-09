@@ -55,7 +55,10 @@ def signup(
         base_alias = os.getenv("SIGNUP_ALIAS_BASE", "")
         email = f"{base_alias}+{timestamp}@gmail.com"
     if password is None:
-        password = os.getenv("SIGNUP_PASSWORD", "Zxc12345")
+        # Fall back to the login default so the new account is usable by later
+        # login() calls; the old "Zxc12345" default both mismatched that and
+        # violated the "no consecutive numbers/phrases" password policy.
+        password = os.getenv("SIGNUP_PASSWORD") or os.getenv("LOGIN_DEFAULT_PASSWORD", "")
     if verification_code is None:
         verification_code = os.getenv("SIGNUP_VERIFICATION_CODE", "")
     if first_name is None:

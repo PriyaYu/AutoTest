@@ -7,7 +7,9 @@ def activate_account(page, verify_url, otp=None, password=None):
     if not verify_url:
         raise ValueError("verify_url is required but not set")
     if password is None:
-        password = os.getenv("SIGNUP_PASSWORD", "Zxc12345")
+        # Match the login default (see flow_signup) so the activated account is
+        # usable by later login() calls and meets the password policy.
+        password = os.getenv("SIGNUP_PASSWORD") or os.getenv("LOGIN_DEFAULT_PASSWORD", "")
     page.goto(verify_url)
     expect(page.get_by_role("heading", name="Verify OTP")).to_be_visible()
     page.get_by_role("button", name="GENERATE OTP").click()
