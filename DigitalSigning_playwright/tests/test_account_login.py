@@ -9,7 +9,7 @@ def test_login_invalid_password(page) -> None:
     expect(page.get_by_text("Invalid Login Name or Password.")).to_be_visible()
 
     login(page, captcha="invalid-captcha", force_login=False, handle_notice=False)
-    expect(page.get_by_text("Incorrect Captcha")).to_be_visible()
+    expect(page.get_by_text("Captcha is incorrect")).to_be_visible()
 
 def test_login_success(page) -> None:
     login(page)
