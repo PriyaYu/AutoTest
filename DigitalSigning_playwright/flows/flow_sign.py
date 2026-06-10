@@ -111,22 +111,26 @@ def sign_by_title(page, title: str, signer_email: str = None, use_iamsmart: bool
             confirm_button = sign_page.get_by_role("button", name=re.compile(r"Continue with iAM Smart", re.IGNORECASE))
             confirm_button.click()
             # 這裡可能不會有對話框，或者需要等待成功畫面/跳轉，依據系統實際行為。
-            dialog = Dialog(sign_page) # 保留宣告以備不時之需
+            dialog = Dialog(sign_page)  # 保留宣告以備不時之需
             dialog.yes_button.click()
+            # iAM Smart 簽署不會出現 "SUBMISSION SUCCESS"；「Signing... Please
+            # Wait...」處理完會直接跳回 All。等選單(All)重新出現即代表完成
+            # （給足時間掃描簽署 QR + 後端處理）。
+            print("[DEBUG] 請掃描 iAM Smart QR 進行簽署授權，等待返回 All...")
+            expect(Menu(page).all_tab).to_be_visible(timeout=120000)
         else:
             # 一般簽署
             confirm_button = sign_page.get_by_role("button", name="Confirm")
             confirm_button.click()
             dialog = Dialog(sign_page)
             dialog.yes_button.click()
-
-        # 延長 timeout 時間並使用包含比對，避免載入比較慢或是文字有些微不同
-        expect(sign_page.locator("body")).to_contain_text(re.compile(r"SUBMISSION SUCCESS", re.IGNORECASE), timeout=15000)
-        # 有些按鈕是 "Ok"，有些是 "OK"，用正規表示式或是尋找頁面上的 OK/Ok
-        try:
-            sign_page.get_by_role("button", name=re.compile(r"^ok$", re.IGNORECASE)).click()
-        except Exception:
-            dialog.ok_button.click()
+            # 延長 timeout 並用包含比對，避免載入較慢或文字略有不同。
+            expect(sign_page.locator("body")).to_contain_text(re.compile(r"SUBMISSION SUCCESS", re.IGNORECASE), timeout=15000)
+            # 有些按鈕是 "Ok"，有些是 "OK"
+            try:
+                sign_page.get_by_role("button", name=re.compile(r"^ok$", re.IGNORECASE)).click()
+            except Exception:
+                dialog.ok_button.click()
     # Verify status is Completed for current signer in All tab (with retry).
     status_timeout = float(os.getenv("SIGN_STATUS_WAIT_TIMEOUT", "60"))
     status_interval = float(os.getenv("SIGN_STATUS_WAIT_INTERVAL", "5"))
