@@ -7,7 +7,7 @@ from flows.flow_iamsmart import register_iamSmart
 
 def test_signup_iamsmart_flow(page) -> None:
     base = os.getenv("WEBSITE_URL", "https://sign.nextore.io")
-    password = os.getenv("LOGIN_DEFAULT_PASSWORD", "Zxc12345")
+    password = os.getenv("LOGIN_DEFAULT_PASSWORD", "")
     
     # 0. 預先驗證：確保測試環境乾淨，沒有殘留綁定的 iAM Smart 帳號
     page.goto(f"{base}/#/login")

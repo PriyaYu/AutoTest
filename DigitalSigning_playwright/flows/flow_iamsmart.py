@@ -32,6 +32,34 @@ def register_iamSmart(page, action: str, password: str = None):
     else:
         raise ValueError("action must be 'register' or 'unregister'")
 
+def ensure_iamsmart_unregistered(page):
+    """Make sure the account starts UNBOUND. If it is already bound to iAM
+    Smart the profile shows 'Un-register iAM Smart' instead of 'Register iAM
+    Smart', which would break the bind test — so unregister it first. The bind
+    state loads slowly, so wait for one of the two buttons before deciding."""
+    open_profile_menu(page)
+    page.get_by_text("My Profile info").last.click()
+
+    register_btn = page.get_by_role("button", name="Register iAM Smart")
+    unregister_btn = page.get_by_role("button", name="Un-register iAM Smart")
+    for _ in range(15):
+        page.wait_for_timeout(1000)
+        if (register_btn.count() > 0 and register_btn.first.is_visible()) or (
+            unregister_btn.count() > 0 and unregister_btn.first.is_visible()
+        ):
+            break
+
+    if unregister_btn.count() > 0 and unregister_btn.first.is_visible():
+        unregister_btn.first.click()
+        expect(page.locator("body")).to_contain_text(
+            re.compile(r"Are you sure you want to un", re.IGNORECASE), timeout=5000
+        )
+        page.get_by_role("button", name="Yes").click()
+        expect(page.locator("body")).to_contain_text(
+            re.compile(r"Successfully unregistered", re.IGNORECASE), timeout=15000
+        )
+
+
 def login_with_iam_smart(page, force_login=False):
     if force_login:
         import os
@@ -47,5 +75,8 @@ def login_with_iam_smart(page, force_login=False):
 
 def logout_from_profile_menu(page):
     open_profile_menu(page)
-    page.get_by_text("Logout").nth(1).click()
+    # Click the dropdown's Logout item specifically (the page also has a sidebar
+    # "Logout" menuitem, so get_by_text("Logout").nth(1) was unreliable).
+    page.locator(".ant-dropdown-menu-item", has_text="Logout").first.click()
+    expect(page).to_have_url(re.compile(r"/#/login"), timeout=15000)
 

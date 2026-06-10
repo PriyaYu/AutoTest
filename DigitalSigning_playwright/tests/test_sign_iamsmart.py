@@ -14,7 +14,7 @@ from flows.flow_check_completed_signing import check_signing_completed
 def test_sign_parallel_iamsmart(page, sample_pdf_path) -> None:
     base = os.getenv("WEBSITE_URL", "https://sign.nextore.io")
     sender_email = os.getenv("LOGIN_DEFAULT_EMAIL", "")
-    password = os.getenv("LOGIN_DEFAULT_PASSWORD", "Zxc12345")
+    password = os.getenv("LOGIN_DEFAULT_PASSWORD", "")
     
     if not sender_email:
         raise ValueError("LOGIN_DEFAULT_EMAIL is required but not set")
