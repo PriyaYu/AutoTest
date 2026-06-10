@@ -34,11 +34,11 @@ def test_use_draft_sent_signing_request(page, sample_pdf_path) -> None:
     search_box.press("Enter")
     row = page.locator("tr", has=page.get_by_text(title, exact=True)).first
     expect(row).to_be_visible()
-    row.get_by_role("button", name="Use").click()
+    # The draft row's action button is "Continue" (resume editing), not "Use".
+    row.get_by_role("button", name="Continue").click()
 
-    for idx in range(len(sign_emails)):
-        flow.signature_field_buttons.nth(idx).click()
-
+    # The draft already has its signature fields placed (added before it was
+    # saved), so the "Signature Field" buttons are disabled — go straight to Send.
     flow.send_button.click()
     flow.confirm_yes_button.click()
     flow.ok_button.click()
