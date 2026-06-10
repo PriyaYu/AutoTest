@@ -14,18 +14,34 @@ def test_signup_iamsmart_flow(page) -> None:
     page.get_by_text("Continue with iAM Smart").click()
     
     print("[DEBUG] 請掃描 QR Code 進行登入預先驗證...")
-    try:
-        # 給予 60 秒的時間掃描。先用 iamsmart登入看看，如果有 Could not find account 代表是乾淨的狀態
-        expect(page.locator("body")).to_contain_text(re.compile(r"Could not find account", re.IGNORECASE), timeout=60000)
+    # After scanning, exactly one of two things should happen: an unbound iAM
+    # Smart identity shows "Could not find account" (clean), or a bound one logs
+    # in ("Welcome back"). Poll for both. If NEITHER shows up, don't guess
+    # "already bound" — that masks a system issue (e.g. the alert never popped).
+    not_found = page.get_by_text(re.compile(r"Could not find account", re.IGNORECASE))
+    welcome = page.get_by_role("heading", name=re.compile(r"Welcome back", re.IGNORECASE))
+    state = None
+    for _ in range(60):  # up to ~60s to scan
+        page.wait_for_timeout(1000)
+        if not_found.count() > 0 and not_found.first.is_visible():
+            state = "clean"
+            break
+        if welcome.count() > 0 and welcome.first.is_visible():
+            state = "bound"
+            break
+
+    if state == "clean":
         print("[DEBUG] 'Could not find account' verified. Environment is clean.")
-    except Exception:
-        # 如果沒有出現，代表可能成功登入了，我們就執行解除綁定
-        print("[DEBUG] Account might be already bound. Attempting to unregister.")
-        try:
-            register_iamSmart(page, action="unregister")
-            print("[DEBUG] Successfully unregistered during pre-check.")
-        except Exception as e:
-            print(f"[DEBUG] Failed to unregister during pre-check: {e}")
+    elif state == "bound":
+        print("[DEBUG] Account is already bound. Unregistering during pre-check...")
+        register_iamSmart(page, action="unregister")
+        print("[DEBUG] Successfully unregistered during pre-check.")
+    else:
+        raise AssertionError(
+            "iAM Smart pre-check inconclusive: neither 'Could not find account' "
+            "(unbound) nor a 'Welcome back' login (bound) appeared within 60s. "
+            "Likely a system issue (the alert never popped) or the QR was not scanned."
+        )
 
     # 回到登入頁，準備開始正式的註冊流程
     page.goto(f"{base}/#/login")
