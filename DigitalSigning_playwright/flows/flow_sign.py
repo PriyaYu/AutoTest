@@ -17,24 +17,33 @@ def sign_by_title(page, title: str, signer_email: str = None, use_iamsmart: bool
     wait_timeout = float(os.getenv("SIGN_TITLE_WAIT_TIMEOUT", "60"))
     wait_interval = float(os.getenv("SIGN_TITLE_WAIT_INTERVAL", "10"))  # Increased to 10s to allow data to load
     row = None
+    sign_button = None
     deadline = time.time() + wait_timeout
     while time.time() < deadline:
         # Wait a moment for the table to potentially render before checking
         page.wait_for_timeout(3000)
         row = page.locator("tr", has=page.get_by_text(title, exact=True)).first
         if row.count() > 0:
-            break
-        print("[DEBUG] Title not found yet, reloading page to check again...")
+            # Also wait for the *Sign* button: in sequential signing the row is
+            # visible before it is this signer's turn (only a View button then),
+            # so finding the row alone is not enough.
+            candidate = row.get_by_role("button", name="Sign").first
+            if candidate.count() > 0 and candidate.is_visible():
+                sign_button = candidate
+                break
+        print("[DEBUG] Row/Sign button not ready yet, reloading page to check again...")
         page.reload()
         # Wait for the menu tab to be ready and click it
         expect(Menu(page).all_tab).to_be_visible(timeout=20000)
         Menu(page).all_tab.click()
         time.sleep(wait_interval)
 
-    if row is None or row.count() == 0:
-        raise ValueError(f"Sign button not found for title: {title}")
+    if sign_button is None:
+        raise ValueError(
+            f"Sign button did not become available for title: {title} "
+            f"(signer={signer_email}); it may not be this signer's turn yet."
+        )
 
-    sign_button = row.get_by_role("button", name="Sign").first
     sign_button.scroll_into_view_if_needed()
 
     sign_page = page
