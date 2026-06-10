@@ -18,8 +18,11 @@ def register_iamSmart(page, action: str, password: str = None):
             password_input.fill(password)
         page.get_by_role("button", name="Submit").click()
         
-        print("[DEBUG] Reached the check for 'Successfully registered'. 請掃描 QR Code...")
-        expect(page.locator("body")).to_contain_text(re.compile(r"Successfully registered", re.IGNORECASE), timeout=60000)
+        print("[DEBUG] Submitted; 請掃描 QR Code... waiting for the account to become bound")
+        # Success = the account becomes bound (the button flips to "Un-register
+        # iAM Smart"). This stable state is more reliable than the transient
+        # "Successfully registered" toast.
+        expect(page.get_by_role("button", name="Un-register iAM Smart")).to_be_visible(timeout=90000)
         
     elif action == "unregister":
         page.get_by_role("button", name="Un-register iAM Smart").click()
@@ -58,6 +61,10 @@ def ensure_iamsmart_unregistered(page):
         expect(page.locator("body")).to_contain_text(
             re.compile(r"Successfully unregistered", re.IGNORECASE), timeout=15000
         )
+        # Reload so a subsequent Register starts from a clean state — binding
+        # again on the same page right after unbinding can fail to show the QR.
+        page.reload()
+        page.wait_for_timeout(2000)
 
 
 def login_with_iam_smart(page, force_login=False):
