@@ -39,6 +39,11 @@ class InitiateSigningRequestPage:
         return self.page.locator("#form_item_saveToFrequenctContact")
 
     @property
+    def expiry_select(self):
+        # Click the inner selector to open the dropdown (the input is hidden).
+        return self.page.locator(".ant-select:has(#form_item_expiryDate) .ant-select-selector")
+
+    @property
     def new_recipient_button(self):
         return self.page.get_by_role("button", name="New Recipient")
 

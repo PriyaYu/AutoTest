@@ -13,6 +13,7 @@ def initiate_signing_request(
     IsSequence=False,
     mode=None,
     save_to_fc=None,
+    expiry_days=None,
 ):
     flow = InitiateSigningRequestPage(page)
     if recipient_emails is None:
@@ -66,6 +67,12 @@ def initiate_signing_request(
                 checkbox = flow.save_to_fc_checkboxes.nth(idx)
                 checkbox.check(force=True)
                 expect(checkbox).to_be_checked()
+
+    # Optionally set the Expiry Date (a "<N> days" select).
+    if expiry_days:
+        flow.expiry_select.click()
+        page.locator(f".ant-select-item-option[title='{expiry_days} days']").click()
+        expect(flow.expiry_select).to_contain_text(f"{expiry_days} days", timeout=5000)
 
     flow.subject_input.fill(title)
 
