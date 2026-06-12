@@ -1,7 +1,6 @@
 import os
 from datetime import datetime
 
-import pytest
 from playwright.sync_api import expect
 
 from flows.flow_activate_account import activate_account
@@ -45,20 +44,22 @@ def test_sign_parallel(page, sample_pdf_path) -> None:
         # registered signers get the internal "You have a document to sign".
         if email == appended_email:
             confirm_mail_received("Document Signing task", recipient=email)
+            # The registered signers are done; it is now this external signer's
+            # turn, so the request must still be in progress (waiting for it), not
+            # already Completed. (This previously caught an app bug where the
+            # request completed after the registered signers, skipping the
+            # unregistered external signer; kept as a regression guard.)
+            Menu(page).all_tab.click()
+            page.wait_for_timeout(1500)
+            status_row = page.locator("tr", has=page.get_by_text(title, exact=True)).first
+            assert "Completed" not in status_row.inner_text(), (
+                "Sequence request was marked Completed after the registered signers, "
+                "without waiting for the unregistered external signer"
+            )
             verify_url = prompt_verify_url(appended_email)
             activate_account(page, verify_url=verify_url, recipient=appended_email)
             login(page, email=email, force_login=True)
-            # Known app bug: a sequence request completes after the registered
-            # signers, skipping a trailing unregistered external signer, so no Sign
-            # button is offered to it. xfail until fixed; auto-passes once the
-            # external signer is waited for.
-            try:
-                sign_by_title(page, title=title, signer_email=email)
-            except ValueError:
-                pytest.xfail(
-                    "App bug: sequence completes without waiting for the unregistered "
-                    "external signer"
-                )
+            sign_by_title(page, title=title, signer_email=email)
         else:
             confirm_mail_received("You have a document to sign", recipient=email, title=title)
             login(page, email=email, force_login=True)
