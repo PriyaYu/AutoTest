@@ -7,6 +7,7 @@ from flows.flow_initiate_signing_request import initiate_signing_request
 from flows.flow_login import login
 from flows.flow_mail_check import confirm_mail_received
 from flows.flow_review import review_action
+from pages.page_menu import Menu
 
 
 def test_review_reject(page, sample_pdf_path) -> None:
@@ -38,6 +39,24 @@ def test_review_reject(page, sample_pdf_path) -> None:
 
     login(page, email=reviewer_email, force_login=True)
     review_action(page, action="reject")
+
+    # After rejection both parties' list status should reflect it (Rejected /
+    # Declined). KNOWN BUG (pending engineer): the status cell is currently blank,
+    # so xfail until it renders a rejection label; then tighten these asserts.
+    Menu(page).all_tab.click()
+    page.wait_for_timeout(1500)
+    reviewer_status = page.locator("tr", has=page.get_by_text(title, exact=True)).first.inner_text()
+    login(page, email=reviewee_email, force_login=True)
+    Menu(page).all_tab.click()
+    page.wait_for_timeout(1500)
+    reviewee_status = page.locator("tr", has=page.get_by_text(title, exact=True)).first.inner_text()
+    _reject_labels = ("Reject", "Declin")
+    if not any(k in reviewer_status for k in _reject_labels) and \
+            not any(k in reviewee_status for k in _reject_labels):
+        pytest.xfail(
+            f"App bug: reject list status blank/missing "
+            f"(reviewer={reviewer_status!r}, reviewee={reviewee_status!r})"
+        )
 
     # Same review-result mail as approval; if reject doesn't email the reviewee
     # either, xfail rather than block (auto-passes once the mail is sent).

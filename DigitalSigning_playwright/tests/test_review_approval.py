@@ -8,6 +8,7 @@ from flows.flow_initiate_signing_request import initiate_signing_request
 from flows.flow_login import login
 from flows.flow_mail_check import confirm_mail_received
 from flows.flow_review import review_action
+from pages.page_menu import Menu
 
 
 def test_review_approval(page, sample_pdf_path) -> None:
@@ -39,6 +40,20 @@ def test_review_approval(page, sample_pdf_path) -> None:
 
     login(page, email=reviewer_email, force_login=True)
     review_action(page, action="approve")
+
+    # After approval the workflow proceeds to signing: the reviewer's list shows
+    # the request as Incomplete, and the reviewee (owner) sees it waiting for the
+    # signers.
+    Menu(page).all_tab.click()
+    page.wait_for_timeout(1500)
+    reviewer_status = page.locator("tr", has=page.get_by_text(title, exact=True)).first.inner_text()
+    assert "Incomplete" in reviewer_status, f"reviewer list status after approve: {reviewer_status!r}"
+
+    login(page, email=reviewee_email, force_login=True)
+    Menu(page).all_tab.click()
+    page.wait_for_timeout(1500)
+    reviewee_status = page.locator("tr", has=page.get_by_text(title, exact=True)).first.inner_text()
+    assert "Waiting" in reviewee_status, f"reviewee list status after approve: {reviewee_status!r}"
 
     # The reviewee should be emailed the result, with the document name rendered
     # into the body as our title. Backend delivery is currently INTERMITTENT (it
