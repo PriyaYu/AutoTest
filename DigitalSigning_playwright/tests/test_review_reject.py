@@ -24,7 +24,7 @@ def test_review_reject(page, sample_pdf_path) -> None:
     if not recipient_emails:
         raise ValueError("SIGN_EMAIL is required but not set")
 
-    initiate_signing_request(
+    _, title = initiate_signing_request(
         page=page,
         pdf_path=sample_pdf_path,
         recipient_emails=recipient_emails,
@@ -32,9 +32,9 @@ def test_review_reject(page, sample_pdf_path) -> None:
     )
 
     for email in reviewer_emails:
-        confirm_mail_received("A document requires your review", recipient=email)
+        confirm_mail_received("A document requires your review", recipient=email, title=title)
 
     login(page, email=reviewer_email, force_login=True)
     review_action(page, action="reject")
 
-    confirm_mail_received("Document review result", recipient=reviewee_email)
+    confirm_mail_received("Document review result", recipient=reviewee_email, title=title)

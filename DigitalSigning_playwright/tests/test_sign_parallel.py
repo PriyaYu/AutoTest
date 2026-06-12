@@ -40,13 +40,13 @@ def test_sign_parallel(page, sample_pdf_path, include_sender) -> None:
     )
 
     for email in sign_emails:
-        confirm_mail_received("You have a document to sign", recipient=email)
+        confirm_mail_received("You have a document to sign", recipient=email, title=title)
 
     for email in random.sample(sign_emails, k=len(sign_emails)):
         login(page, email=email, force_login=True)
         sign_by_title(page, title=title, signer_email=email)
 
     if sender_email:
-        confirm_mail_received("Document signing completed", recipient="sender + all signers")
+        confirm_mail_received("Document signing completed", recipient="sender + all signers", title=title)
         login(page, email=sender_email, force_login=True)
         check_signing_completed(page, title=title)

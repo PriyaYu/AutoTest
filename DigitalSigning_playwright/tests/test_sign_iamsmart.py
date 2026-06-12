@@ -97,7 +97,7 @@ def test_sign_parallel_iamsmart(page, sample_pdf_path) -> None:
     print(f"[DEBUG] Initiated parallel signing request with title: {title}")
 
     for email in sign_emails:
-        confirm_mail_received("You have a document to sign", recipient=email)
+        confirm_mail_received("You have a document to sign", recipient=email, title=title)
 
     # 3. 各個收件者進行簽署 (隨機順序)
     for email in random.sample(sign_emails, k=len(sign_emails)):
@@ -120,6 +120,6 @@ def test_sign_parallel_iamsmart(page, sample_pdf_path) -> None:
             sign_by_title(page, title=title, signer_email=email, use_iamsmart=False)
 
     # 4. 驗證簽署已完成
-    confirm_mail_received("Document signing completed", recipient="sender + all signers")
+    confirm_mail_received("Document signing completed", recipient="sender + all signers", title=title)
     login(page, email=sender_email, password=password, force_login=True)
     check_signing_completed(page, title=title)

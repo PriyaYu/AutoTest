@@ -42,9 +42,9 @@ def test_sign_parallel(page, sample_pdf_path) -> None:
         # External/unregistered recipients receive the external template; the
         # appended (registered) account receives the internal one.
         if email != appended_email:
-            confirm_mail_received("Document Signing task", recipient=email)
+            confirm_mail_received("Document Signing task", recipient=email, title=title)
         else:
-            confirm_mail_received("You have a document to sign", recipient=email)
+            confirm_mail_received("You have a document to sign", recipient=email, title=title)
         if email == appended_email:
             verify_url = prompt_verify_url()
             activate_account(page, verify_url=verify_url)
@@ -54,6 +54,6 @@ def test_sign_parallel(page, sample_pdf_path) -> None:
     sender_email = os.getenv("LOGIN_DEFAULT_EMAIL", "")
     if not sender_email:
         raise ValueError("LOGIN_DEFAULT_EMAIL is required but not set")
-    confirm_mail_received("Document signing completed", recipient="sender + all signers")
+    confirm_mail_received("Document signing completed", recipient="sender + all signers", title=title)
     login(page, email=sender_email, force_login=True)
     check_signing_completed(page, title=title)

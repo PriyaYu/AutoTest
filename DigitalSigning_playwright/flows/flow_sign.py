@@ -148,7 +148,7 @@ def sign_by_title(page, title: str, signer_email: str = None, use_iamsmart: bool
             print(f"[DEBUG] waiting for {match.group(1)} others")
             sender_email = os.getenv("LOGIN_DEFAULT_EMAIL", "")
             if sender_email and signer_email != sender_email:
-                confirm_mail_received("A signer has completed the document", recipient=sender_email)
+                confirm_mail_received("A signer has completed the document", recipient=sender_email, title=title)
             return
         if time.time() >= deadline:
             raise ValueError(f"Status not Completed for title: {title}")

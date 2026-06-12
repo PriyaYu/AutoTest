@@ -124,13 +124,13 @@ def test_sign_sequence_validation(page, sample_pdf_path, sender_position) -> Non
 
         login(page, email=signer_email, force_login=True)
         print("[DEBUG] signing as current signer...")
-        confirm_mail_received("You have a document to sign", recipient=signer_email)
+        confirm_mail_received("You have a document to sign", recipient=signer_email, title=title)
         sign_by_title(page, title=title, signer_email=signer_email)
         print("[DEBUG] sign_by_title done")
 
     sender_email = os.getenv("LOGIN_DEFAULT_EMAIL", "")
     if not sender_email:
         raise ValueError("LOGIN_DEFAULT_EMAIL is required but not set")
-    confirm_mail_received("Document signing completed", recipient="sender + all signers")
+    confirm_mail_received("Document signing completed", recipient="sender + all signers", title=title)
     login(page, email=sender_email, force_login=True)
     check_signing_completed(page, title=title)

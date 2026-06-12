@@ -30,9 +30,9 @@ def test_sign_parallel(page, sample_pdf_path) -> None:
 
     for email in sign_emails:
         if email != appended_email:
-            confirm_mail_received("Document Signing task", recipient=email)
+            confirm_mail_received("Document Signing task", recipient=email, title=title)
         else:
-            confirm_mail_received("You have a document to sign", recipient=email)
+            confirm_mail_received("You have a document to sign", recipient=email, title=title)
 
     for email in random.sample(sign_emails, k=len(sign_emails)):
         if email == appended_email:
@@ -49,6 +49,6 @@ def test_sign_parallel(page, sample_pdf_path) -> None:
     sender_email = os.getenv("LOGIN_DEFAULT_EMAIL", "")
     if not sender_email:
         raise ValueError("LOGIN_DEFAULT_EMAIL is required but not set")
-    confirm_mail_received("Document signing completed", recipient="sender + all signers")
+    confirm_mail_received("Document signing completed", recipient="sender + all signers", title=title)
     login(page, email=sender_email, force_login=True)
     check_signing_completed(page, title=title)
