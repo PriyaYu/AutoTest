@@ -40,10 +40,12 @@ def test_review_approval(page, sample_pdf_path) -> None:
     login(page, email=reviewer_email, force_login=True)
     review_action(page, action="approve")
 
-    # Known app bug: the reviewee is not emailed the result after a single
-    # reviewer approves. xfail until fixed, then this auto-passes once the mail
-    # actually arrives.
+    # The reviewee should be emailed the result, with the document name rendered
+    # into the body as our title. Backend delivery is currently INTERMITTENT (it
+    # sometimes renders and sends, sometimes the @Model.document_name template
+    # error recurs and no mail arrives), so tolerate a miss as xfail rather than a
+    # flaky failure; it passes whenever the mail actually arrives.
     try:
         confirm_mail_received("Document review result", recipient=reviewee_email, title=title)
     except AssertionError:
-        pytest.xfail("App bug: 'Document review result' email not sent to reviewee on approval")
+        pytest.xfail("App bug: 'Document review result' email delivery/render is intermittent")
