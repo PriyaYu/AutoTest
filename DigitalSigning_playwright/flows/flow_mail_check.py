@@ -1,4 +1,5 @@
 import base64
+import html
 import json
 import os
 import quopri
@@ -40,13 +41,10 @@ def _b64_decode(s: str) -> str:
     return base64.b64decode(s).decode("utf-8", "ignore")
 
 
-def _decode_mail_text(msg: dict) -> str:
-    """Decode a MailHog message body to plain text and strip HTML tags.
-
-    Handles single-part mail (top-level Content-Transfer-Encoding base64 /
-    quoted-printable) and multipart mail, where the readable part is a *nested*
-    base64 chunk inside the body. Decodes every layer it can find and searches
-    them all."""
+def _decode_mail_chunks(msg: dict) -> str:
+    """Decode every layer of a MailHog message body (top-level base64 /
+    quoted-printable plus nested base64 MIME parts) and join them, WITHOUT
+    stripping HTML tags. Tag-aware callers (URL extraction) need the markup."""
     content = msg.get("Content", {})
     body = content.get("Body", "")
     cte = content.get("Headers", {}).get("Content-Transfer-Encoding", [""])
@@ -69,9 +67,50 @@ def _decode_mail_text(msg: dict) -> str:
             chunks.append(_b64_decode(blob))
         except Exception:
             pass
+    return " ".join(chunks)
 
-    text = re.sub(r"<[^>]+>", " ", " ".join(chunks))
+
+def _decode_mail_text(msg: dict) -> str:
+    """Decoded message body as plain text (tags stripped) for subject/title
+    matching."""
+    text = re.sub(r"<[^>]+>", " ", _decode_mail_chunks(msg))
     return re.sub(r"\s+", " ", text).strip()
+
+
+# A signing/activation link: .../#/verify-otp?token=<JWT>. In the HTML the token
+# sits in a styling <span> right after "?", so allow tag(s) between "?" and
+# "token="; the JWT charset then stops the match at the closing </span> (the next
+# "<"), which keeps footer text from being glued onto the token.
+_VERIFY_URL_RE = re.compile(
+    r"https?://[^\s\"'<>]*?/#/verify-otp\?(?:<[^>]+>)*token=[A-Za-z0-9._-]+",
+    re.IGNORECASE,
+)
+
+
+def fetch_verify_url_from_mailhog(recipient: str, timeout_seconds: int = None) -> str:
+    """Poll MailHog for the signing-task email to `recipient` and return its
+    verify-otp activation URL, or '' if not found / MailHog unreachable. The
+    recipient is unique per run, so no freshness baseline is needed."""
+    timeout_seconds = timeout_seconds or int(os.getenv("MAIL_POLL_TIMEOUT", "60"))
+    interval = int(os.getenv("MAIL_POLL_INTERVAL", "5"))
+    deadline = time.time() + timeout_seconds
+    while time.time() < deadline:
+        try:
+            items = _mailhog_search(recipient, kind="to")
+            if items is None:
+                return ""
+            for msg in items:
+                markup = html.unescape(_decode_mail_chunks(msg))
+                match = _VERIFY_URL_RE.search(markup)
+                if match:
+                    # Drop the inline <span> tag(s) sitting between "?" and "token=".
+                    url = re.sub(r"<[^>]+>", "", match.group(0))
+                    print(f"[Mail OK] verify URL for {recipient}: {url[:55]}...")
+                    return url
+        except Exception:
+            pass
+        time.sleep(interval)
+    return ""
 
 
 def _to_addresses(msg: dict):
@@ -153,7 +192,11 @@ def _fallback_confirm(subject: str, recipient: str = "") -> None:
         print("[Mail Notification] Email not received yet; continuing as requested.")
 
 
-def prompt_verify_url() -> str:
+def prompt_verify_url(recipient: str = "") -> str:
+    if recipient:
+        url = fetch_verify_url_from_mailhog(recipient)
+        if url:
+            return url
     _focus_terminal()
     verify_url = input("[Mail Notification] Paste verify URL from email (run pytest -s): ").strip()
     _focus_browser()

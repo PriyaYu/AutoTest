@@ -29,19 +29,19 @@ def test_sign_parallel(page, sample_pdf_path) -> None:
     )
 
     for email in sign_emails:
-        if email != appended_email:
-            confirm_mail_received("Document Signing task", recipient=email, title=title)
+        if email == appended_email:
+            # Unregistered signer gets the activation mail "Document Signing task".
+            # Its body carries no document title, but the address is unique per run
+            # so the recipient alone guarantees freshness.
+            confirm_mail_received("Document Signing task", recipient=email)
         else:
             confirm_mail_received("You have a document to sign", recipient=email, title=title)
 
     for email in random.sample(sign_emails, k=len(sign_emails)):
         if email == appended_email:
-            # NOTE: The appended account ({SIGNUP_ALIAS_BAS}+YYYYMMDDHHMMSS@gmail.com) must manually
-            # check the inbox and sign; email receiving is not automated yet.
-            # NOTE: Inbox email sample:
-            # "Dear User, Please go to for signing Document: https://sign.nextore.io/#/verify-otp?token=..."
-            verify_url = prompt_verify_url()
-            activate_account(page, verify_url=verify_url)
+            # Pull the verify-otp activation URL straight from the MailHog inbox.
+            verify_url = prompt_verify_url(appended_email)
+            activate_account(page, verify_url=verify_url, recipient=appended_email)
         
         login(page, email=email, force_login=True)
         sign_by_title(page, title=title, signer_email=email)

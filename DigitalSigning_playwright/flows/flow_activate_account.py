@@ -2,8 +2,15 @@ import os
 
 from playwright.sync_api import expect
 
+from flows.flow_signup import (
+    _focus_terminal,
+    _focus_browser,
+    latest_mailhog_id,
+    _fetch_verification_code_from_mailhog,
+)
 
-def activate_account(page, verify_url, otp=None, password=None):
+
+def activate_account(page, verify_url, recipient="", otp=None, password=None):
     if not verify_url:
         raise ValueError("verify_url is required but not set")
     if password is None:
@@ -12,9 +19,14 @@ def activate_account(page, verify_url, otp=None, password=None):
         password = os.getenv("SIGNUP_PASSWORD") or os.getenv("LOGIN_DEFAULT_PASSWORD", "")
     page.goto(verify_url)
     expect(page.get_by_role("heading", name="Verify OTP")).to_be_visible()
+    # GENERATE OTP sends an OTP email ("Verify your email address (OTP)") that uses
+    # the same "...registration: <code>" template as signup. Record a baseline
+    # first, then fetch the newer (OTP) mail from MailHog.
+    baseline_id = latest_mailhog_id(recipient) if recipient else None
     page.get_by_role("button", name="GENERATE OTP").click()
-    if otp is None:
-        from flows.flow_signup import _focus_terminal, _focus_browser
+    if otp is None and recipient:
+        otp = _fetch_verification_code_from_mailhog(recipient, after_id=baseline_id)
+    if not otp:
         _focus_terminal()
         otp = input("[Mail Notification] Enter OTP from email (run pytest -s): ").strip()
         page.bring_to_front()

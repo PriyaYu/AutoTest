@@ -39,15 +39,15 @@ def test_sign_parallel(page, sample_pdf_path) -> None:
         expect(row.get_by_role("button", name="Sign")).to_have_count(0)
 
     for email in sign_emails:
-        # External/unregistered recipients receive the external template; the
-        # appended (registered) account receives the internal one.
-        if email != appended_email:
-            confirm_mail_received("Document Signing task", recipient=email, title=title)
+        # The appended account is unregistered: it gets the activation mail
+        # ("Document Signing task", no title in body but a unique per-run address);
+        # registered signers get the internal "You have a document to sign".
+        if email == appended_email:
+            confirm_mail_received("Document Signing task", recipient=email)
+            verify_url = prompt_verify_url(appended_email)
+            activate_account(page, verify_url=verify_url, recipient=appended_email)
         else:
             confirm_mail_received("You have a document to sign", recipient=email, title=title)
-        if email == appended_email:
-            verify_url = prompt_verify_url()
-            activate_account(page, verify_url=verify_url)
         login(page, email=email, force_login=True)
         sign_by_title(page, title=title, signer_email=email)
 
