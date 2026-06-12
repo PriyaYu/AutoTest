@@ -4,7 +4,13 @@ import re
 
 from playwright.sync_api import expect
 
-from flows.flow_signup import signup, _focus_terminal, _focus_browser
+from flows.flow_signup import (
+    signup,
+    _focus_terminal,
+    _focus_browser,
+    latest_mailhog_id,
+    _fetch_verification_code_from_mailhog,
+)
 from flows.flow_login import login
 
 
@@ -14,6 +20,10 @@ def test_account_forgot_password(page) -> None:
     new_password = os.getenv("FORGOT_PASSWORD_NEW_PASSWORD", "Nx7p$Qm2k")
     verification_code = os.getenv("FORGOT_PASSWORD_CODE", "")
 
+    # Baseline: the signup verification email is currently the newest for this
+    # address; the forgot-password code must come from a *newer* email.
+    baseline_id = latest_mailhog_id(email)
+
     page.goto(f"{base}/#/login")
     page.get_by_text("Forgot Password?").click()
     expect(page.locator("section")).to_contain_text("Forgot Password")
@@ -21,6 +31,8 @@ def test_account_forgot_password(page) -> None:
     page.get_by_role("textbox").first.fill(email)
     page.get_by_text("Verify My Email").click()
     expect(page.locator("body")).to_contain_text("Verification code sent")
+    if not verification_code:
+        verification_code = _fetch_verification_code_from_mailhog(email, after_id=baseline_id)
     if not verification_code:
         _focus_terminal()
         verification_code = input(

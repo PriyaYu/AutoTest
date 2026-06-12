@@ -162,34 +162,60 @@ def _fetch_verification_code_from_mailtrap(recipient_email: str) -> str:
     return ""
 
 
-def _fetch_latest_mailhog_body(recipient_email: str, timeout_seconds: int = None) -> str:
-    """Poll MailHog for the latest email to `recipient_email` and return its body
-    (basic-auth protected). Returns '' if MailHog is unconfigured/unreachable."""
+def _query_mailhog_latest(recipient_email: str):
+    """Single-shot: return the newest MailHog message dict for `recipient_email`,
+    or None. Raises on transport errors (caller handles)."""
     base = os.getenv("MAILHOG_API_URL", "http://61.31.169.97:8025")
     if not base:
-        return ""
+        return None
     user = os.getenv("MAILHOG_USER", "admin")
     pwd = os.getenv("MAILHOG_PASS", "admin123")
-    timeout_seconds = timeout_seconds or int(os.getenv("MAIL_POLL_TIMEOUT", "60"))
-    interval_seconds = int(os.getenv("MAIL_POLL_INTERVAL", "5"))
     auth = base64.b64encode(f"{user}:{pwd}".encode()).decode()
     headers = {"Authorization": f"Basic {auth}"}
+    url = f"{base}/api/v2/search?kind=to&query={quote(recipient_email)}"
+    req = Request(url, headers=headers)
+    with urlopen(req, timeout=30) as resp:
+        data = json.loads(resp.read().decode("utf-8"))
+    items = data.get("items", [])
+    if not items:
+        return None
+    return max(items, key=lambda m: m.get("Created", ""))
+
+
+def latest_mailhog_id(recipient_email: str):
+    """Return the newest message's ID for `recipient_email` (a baseline to wait
+    past), or None. Never raises."""
+    try:
+        msg = _query_mailhog_latest(recipient_email)
+        return msg.get("ID") if msg else None
+    except Exception:
+        return None
+
+
+def _fetch_latest_mailhog_body(recipient_email: str, timeout_seconds: int = None,
+                               after_id: str = None) -> str:
+    """Poll MailHog for the newest email to `recipient_email` and return its body.
+    If `after_id` is given, wait until a message with a *different* ID arrives
+    (so a freshly-sent email isn't confused with an older one to the same address).
+    Returns '' if MailHog is unconfigured/unreachable or it times out."""
+    timeout_seconds = timeout_seconds or int(os.getenv("MAIL_POLL_TIMEOUT", "60"))
+    interval_seconds = int(os.getenv("MAIL_POLL_INTERVAL", "5"))
 
     deadline = time.time() + timeout_seconds
     last_error = ""
     while time.time() < deadline:
         try:
-            url = f"{base}/api/v2/search?kind=to&query={quote(recipient_email)}"
-            req = Request(url, headers=headers)
-            with urlopen(req, timeout=30) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
-            items = data.get("items", [])
-            print(f"[DEBUG] MailHog messages for {recipient_email}: {len(items)}")
-            if items:
-                latest = max(items, key=lambda m: m.get("Created", ""))
-                body = latest.get("Content", {}).get("Body", "")
-                print("[DEBUG] MailHog body (first 300 chars):", repr(body[:300]))
-                return body
+            msg = _query_mailhog_latest(recipient_email)
+            if msg is None:
+                print(f"[DEBUG] MailHog: no messages yet for {recipient_email}")
+            else:
+                msg_id = msg.get("ID")
+                if after_id is not None and msg_id == after_id:
+                    print(f"[DEBUG] MailHog: only baseline {msg_id!r}, waiting for newer")
+                else:
+                    body = msg.get("Content", {}).get("Body", "")
+                    print(f"[DEBUG] MailHog id={msg_id!r} body (first 200): {body[:200]!r}")
+                    return body
         except Exception as exc:
             last_error = str(exc)
         time.sleep(interval_seconds)
@@ -199,8 +225,8 @@ def _fetch_latest_mailhog_body(recipient_email: str, timeout_seconds: int = None
     return ""
 
 
-def _fetch_verification_code_from_mailhog(recipient_email: str) -> str:
-    body = _fetch_latest_mailhog_body(recipient_email)
+def _fetch_verification_code_from_mailhog(recipient_email: str, after_id: str = None) -> str:
+    body = _fetch_latest_mailhog_body(recipient_email, after_id=after_id)
     if not body:
         return ""
     # The body is quoted-printable HTML; decode and strip tags before parsing.
