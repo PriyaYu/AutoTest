@@ -1,8 +1,11 @@
+import base64
 import json
 import os
+import quopri
 import re
 import time
 from datetime import datetime
+from urllib.parse import quote
 from urllib.request import Request, urlopen
 
 from playwright.sync_api import expect
@@ -73,14 +76,16 @@ def signup(
     page.get_by_text("Verify My Email").click()
     expect(page.get_by_text("Verification code sent")).to_be_visible()
     if not verification_code:
+        verification_code = _fetch_verification_code_from_mailhog(email)
+    if not verification_code:
         use_mailtrap = os.getenv("MAILTRAP_STATUS", "").lower() in {"1", "true", "yes"}
         if use_mailtrap:
             verification_code = _fetch_verification_code_from_mailtrap(email)
-        if not verification_code:
-            _focus_terminal()
-            verification_code = input('[Email Notification] Receive "Verify your email address" then enter verification code: ').strip()
-            page.bring_to_front()
-            _focus_browser()
+    if not verification_code:
+        _focus_terminal()
+        verification_code = input('[Email Notification] Receive "Verify your email address" then enter verification code: ').strip()
+        page.bring_to_front()
+        _focus_browser()
     if not verification_code:
         raise ValueError("Verification code is required but not set")
     page.get_by_role("textbox").first.fill(verification_code)
@@ -154,4 +159,61 @@ def _fetch_verification_code_from_mailtrap(recipient_email: str) -> str:
 
     if last_error:
         print(f"[DEBUG] Mailtrap lookup error: {last_error}")
+    return ""
+
+
+def _fetch_latest_mailhog_body(recipient_email: str, timeout_seconds: int = None) -> str:
+    """Poll MailHog for the latest email to `recipient_email` and return its body
+    (basic-auth protected). Returns '' if MailHog is unconfigured/unreachable."""
+    base = os.getenv("MAILHOG_API_URL", "http://61.31.169.97:8025")
+    if not base:
+        return ""
+    user = os.getenv("MAILHOG_USER", "admin")
+    pwd = os.getenv("MAILHOG_PASS", "admin123")
+    timeout_seconds = timeout_seconds or int(os.getenv("MAIL_POLL_TIMEOUT", "60"))
+    interval_seconds = int(os.getenv("MAIL_POLL_INTERVAL", "5"))
+    auth = base64.b64encode(f"{user}:{pwd}".encode()).decode()
+    headers = {"Authorization": f"Basic {auth}"}
+
+    deadline = time.time() + timeout_seconds
+    last_error = ""
+    while time.time() < deadline:
+        try:
+            url = f"{base}/api/v2/search?kind=to&query={quote(recipient_email)}"
+            req = Request(url, headers=headers)
+            with urlopen(req, timeout=30) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+            items = data.get("items", [])
+            print(f"[DEBUG] MailHog messages for {recipient_email}: {len(items)}")
+            if items:
+                latest = max(items, key=lambda m: m.get("Created", ""))
+                body = latest.get("Content", {}).get("Body", "")
+                print("[DEBUG] MailHog body (first 300 chars):", repr(body[:300]))
+                return body
+        except Exception as exc:
+            last_error = str(exc)
+        time.sleep(interval_seconds)
+
+    if last_error:
+        print(f"[DEBUG] MailHog lookup error: {last_error}")
+    return ""
+
+
+def _fetch_verification_code_from_mailhog(recipient_email: str) -> str:
+    body = _fetch_latest_mailhog_body(recipient_email)
+    if not body:
+        return ""
+    # The body is quoted-printable HTML; decode and strip tags before parsing.
+    decoded = quopri.decodestring(body.encode("utf-8", "ignore")).decode("utf-8", "ignore")
+    text = re.sub(r"<[^>]+>", " ", decoded)
+    text = re.sub(r"\s+", " ", text)
+    # The code follows "...complete your registration: <CODE>" (same template for
+    # signup and password reset).
+    pattern = re.compile(
+        os.getenv("MAIL_CODE_REGEX", r"registration:\s*([A-Za-z0-9]{4,8})"), re.IGNORECASE
+    )
+    match = pattern.search(text)
+    if match:
+        return match.group(1) if match.groups() else match.group(0)
+    print(f"[DEBUG] MailHog: code not found in: {text[:200]!r}")
     return ""
