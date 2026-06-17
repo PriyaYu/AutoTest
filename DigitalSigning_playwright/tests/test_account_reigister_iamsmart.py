@@ -56,7 +56,9 @@ def test_signup_iamsmart_flow(page) -> None:
     expect(page.get_by_role("heading", name="Create Account")).to_be_visible(timeout=15000)
     
     # 為了避免重複執行測試時出現「Email已被註冊」的錯誤，使用動態 Email
-    email = f"zihsyuan0603+{datetime.now().strftime('%Y%m%d%H%M%S')}@gmail.com"
+    base_alias = os.getenv("SIGNUP_ALIAS_BASE", "")
+    email_domain = os.getenv("SIGNUP_EMAIL_DOMAIN", "nexify.com.hk")
+    email = f"{base_alias}+{datetime.now().strftime('%Y%m%d%H%M%S')}@{email_domain}"
     
     # 4. 填寫註冊資料
     page.get_by_role("textbox").nth(1).fill(email)

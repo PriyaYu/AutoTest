@@ -56,7 +56,8 @@ def signup(
     if email is None:
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
         base_alias = os.getenv("SIGNUP_ALIAS_BASE", "")
-        email = f"{base_alias}+{timestamp}@gmail.com"
+        email_domain = os.getenv("SIGNUP_EMAIL_DOMAIN", "nexify.com.hk")
+        email = f"{base_alias}+{timestamp}@{email_domain}"
     if password is None:
         # Fall back to the login default so the new account is usable by later
         # login() calls; the old "Zxc12345" default both mismatched that and
@@ -76,11 +77,11 @@ def signup(
     page.get_by_text("Verify My Email").click()
     expect(page.get_by_text("Verification code sent")).to_be_visible()
     if not verification_code:
-        verification_code = _fetch_verification_code_from_mailhog(email)
-    if not verification_code:
-        use_mailtrap = os.getenv("MAILTRAP_STATUS", "").lower() in {"1", "true", "yes"}
-        if use_mailtrap:
-            verification_code = _fetch_verification_code_from_mailtrap(email)
+        from flows.flow_imap_check import imap_enabled, imap_fetch_verification_code
+        if imap_enabled():
+            verification_code = imap_fetch_verification_code(email)
+        else:
+            verification_code = _fetch_verification_code_from_mailhog(email)
     if not verification_code:
         _focus_terminal()
         verification_code = input('[Email Notification] Receive "Verify your email address" then enter verification code: ').strip()
@@ -115,51 +116,6 @@ def signup(
         )
 
     return email, password
-
-
-def _fetch_verification_code_from_mailtrap(recipient_email: str) -> str:
-    api_token = os.getenv("MAILTRAP_API_TOKEN", "")
-    account_id = os.getenv("MAILTRAP_ACCOUNT_ID", "")
-    inbox_id = os.getenv("MAILTRAP_INBOX_ID", "")
-    if not (api_token and account_id and inbox_id):
-        return ""
-
-    timeout_seconds = int(os.getenv("MAILTRAP_POLL_TIMEOUT", "60"))
-    interval_seconds = int(os.getenv("MAILTRAP_POLL_INTERVAL", "5"))
-    code_pattern = os.getenv("SIGNUP_VERIFICATION_REGEX", r"\b[A-Za-z0-9]{4,6}\b")
-    pattern = re.compile(code_pattern)
-
-    base_url = f"https://mailtrap.io/api/accounts/{account_id}/inboxes/{inbox_id}"
-    headers = {"Api-Token": api_token}
-
-    deadline = time.time() + timeout_seconds
-    last_error = ""
-    while time.time() < deadline:
-        try:
-            list_url = f"{base_url}/messages?search={recipient_email}"
-            req = Request(list_url, headers=headers)
-            with urlopen(req, timeout=30) as resp:
-                messages = json.loads(resp.read().decode("utf-8"))
-            print(f"[DEBUG] Mailtrap messages found: {len(messages)}")
-            if messages:
-                message_id = max(m.get("id", 0) for m in messages)
-                print(f"[DEBUG] Mailtrap latest message id: {message_id}")
-                body_url = f"{base_url}/messages/{message_id}/body.txt"
-                body_req = Request(body_url, headers=headers)
-                with urlopen(body_req, timeout=30) as body_resp:
-                    body_text = body_resp.read().decode("utf-8")
-                print("[DEBUG] Mailtrap body (first 200 chars):")
-                print(body_text[:200])
-                match = pattern.search(body_text)
-                if match:
-                    return match.group(0)
-        except Exception as exc:
-            last_error = str(exc)
-        time.sleep(interval_seconds)
-
-    if last_error:
-        print(f"[DEBUG] Mailtrap lookup error: {last_error}")
-    return ""
 
 
 def _query_mailhog_latest(recipient_email: str):

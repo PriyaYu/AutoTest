@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 
 from playwright.sync_api import expect
@@ -13,7 +14,8 @@ def edit_recipient(page) -> dict:
     # New values to apply during the edit.
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
     new_name = f"Edited_{timestamp}"
-    new_email = f"{new_name}@gmail.com"
+    email_domain = os.getenv("SIGNUP_EMAIL_DOMAIN", "nexify.com.hk")
+    new_email = f"{new_name}@{email_domain}"
     new_job_title = f"JH_Edited_{timestamp}"
 
     # Find the freshly created contact's row and open it for editing.

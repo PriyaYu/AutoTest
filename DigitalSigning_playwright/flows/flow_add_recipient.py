@@ -11,7 +11,8 @@ def add_recipient(page) -> dict:
     base_alias = os.getenv("RECIPIENT_ALIAS_BASE", "")
     alias = f"{base_alias}+{timestamp}"
     name = alias
-    email = f"{alias}@gmail.com"
+    email_domain = os.getenv("SIGNUP_EMAIL_DOMAIN", "nexify.com.hk")
+    email = f"{alias}@{email_domain}"
     job_title = f"JH_{alias}"
     search_term = name
 
