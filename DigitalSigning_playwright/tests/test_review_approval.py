@@ -1,6 +1,7 @@
 
 import os
 import random
+import time
 
 import pytest
 
@@ -43,16 +44,22 @@ def test_review_approval(page, sample_pdf_path) -> None:
 
     # After approval the workflow proceeds to signing: the reviewer's list shows
     # the request as Incomplete, and the reviewee (owner) sees it waiting for the
-    # signers.
-    Menu(page).all_tab.click()
-    page.wait_for_timeout(1500)
-    reviewer_status = page.locator("tr", has=page.get_by_text(title, exact=True)).first.inner_text()
+    # signers. The list loads asynchronously, so poll for the row before reading.
+    def _poll_row(t, timeout=15):
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            Menu(page).all_tab.click()
+            page.wait_for_timeout(1500)
+            r = page.locator("tr", has=page.get_by_text(t, exact=True)).first
+            if r.count():
+                return r.inner_text()
+        return ""
+
+    reviewer_status = _poll_row(title)
     assert "Incomplete" in reviewer_status, f"reviewer list status after approve: {reviewer_status!r}"
 
     login(page, email=reviewee_email, force_login=True)
-    Menu(page).all_tab.click()
-    page.wait_for_timeout(1500)
-    reviewee_status = page.locator("tr", has=page.get_by_text(title, exact=True)).first.inner_text()
+    reviewee_status = _poll_row(title)
     assert "Waiting" in reviewee_status, f"reviewee list status after approve: {reviewee_status!r}"
 
     # The reviewee should be emailed the result, with the document name rendered

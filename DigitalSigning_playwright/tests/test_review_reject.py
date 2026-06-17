@@ -1,5 +1,6 @@
 import os
 import random
+import time
 
 import pytest
 
@@ -43,13 +44,20 @@ def test_review_reject(page, sample_pdf_path) -> None:
     # After rejection both parties' list status should reflect it (Rejected /
     # Declined). KNOWN BUG (pending engineer): the status cell is currently blank,
     # so xfail until it renders a rejection label; then tighten these asserts.
-    Menu(page).all_tab.click()
-    page.wait_for_timeout(1500)
-    reviewer_status = page.locator("tr", has=page.get_by_text(title, exact=True)).first.inner_text()
+    # The list loads asynchronously, so poll for the row before reading.
+    def _poll_row(t, timeout=15):
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            Menu(page).all_tab.click()
+            page.wait_for_timeout(1500)
+            r = page.locator("tr", has=page.get_by_text(t, exact=True)).first
+            if r.count():
+                return r.inner_text()
+        return ""
+
+    reviewer_status = _poll_row(title)
     login(page, email=reviewee_email, force_login=True)
-    Menu(page).all_tab.click()
-    page.wait_for_timeout(1500)
-    reviewee_status = page.locator("tr", has=page.get_by_text(title, exact=True)).first.inner_text()
+    reviewee_status = _poll_row(title)
     _reject_labels = ("Reject", "Declin")
     if not any(k in reviewer_status for k in _reject_labels) and \
             not any(k in reviewee_status for k in _reject_labels):
