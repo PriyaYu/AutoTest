@@ -1,8 +1,8 @@
 """Real-inbox mail verification over IMAP — the alternative backend to MailHog.
 
 MailHog centrally intercepts every outgoing mail; a real IMAP inbox can only read
-ONE mailbox. The tests already use Gmail plus-addressing (zihsyuan0603+001@...),
-which all land in the single zihsyuan0603@gmail.com inbox, so one IMAP login plus
+ONE mailbox. The tests already use Gmail plus-addressing (nextore.trial+001@...),
+which all land in the single nextore.trial@gmail.com inbox, so one IMAP login plus
 an IMAP `TO "+001"` filter resolves the right message.
 
 Selected via env `MAIL_BACKEND=imap` (default `mailhog`). The four read entry
