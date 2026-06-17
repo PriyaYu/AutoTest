@@ -18,7 +18,7 @@ def test_sign_parallel(page, sample_pdf_path) -> None:
     sign_emails_raw = os.getenv("SIGN_EMAIL", "")
     recipient_emails = [e.strip() for e in sign_emails_raw.split(",") if e.strip()]
     base_alias = os.getenv("SIGNUP_ALIAS_BASE", "")
-    email_domain = os.getenv("SIGNUP_EMAIL_DOMAIN", "nexify.com.hk")
+    email_domain = os.getenv("SIGNUP_EMAIL_DOMAIN", "gmail.com")
     appended_email = f"{base_alias}+{datetime.now().strftime('%Y%m%d%H%M%S')}@{email_domain}"
     recipient_emails.append(appended_email)
     if not recipient_emails:

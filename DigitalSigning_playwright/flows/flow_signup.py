@@ -56,7 +56,7 @@ def signup(
     if email is None:
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
         base_alias = os.getenv("SIGNUP_ALIAS_BASE", "")
-        email_domain = os.getenv("SIGNUP_EMAIL_DOMAIN", "nexify.com.hk")
+        email_domain = os.getenv("SIGNUP_EMAIL_DOMAIN", "gmail.com")
         email = f"{base_alias}+{timestamp}@{email_domain}"
     if password is None:
         # Fall back to the login default so the new account is usable by later

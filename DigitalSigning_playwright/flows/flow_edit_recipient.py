@@ -14,7 +14,7 @@ def edit_recipient(page) -> dict:
     # New values to apply during the edit.
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
     new_name = f"Edited_{timestamp}"
-    email_domain = os.getenv("SIGNUP_EMAIL_DOMAIN", "nexify.com.hk")
+    email_domain = os.getenv("SIGNUP_EMAIL_DOMAIN", "gmail.com")
     new_email = f"{new_name}@{email_domain}"
     new_job_title = f"JH_Edited_{timestamp}"
 

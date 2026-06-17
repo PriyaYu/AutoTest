@@ -57,7 +57,7 @@ def test_signup_iamsmart_flow(page) -> None:
     
     # 為了避免重複執行測試時出現「Email已被註冊」的錯誤，使用動態 Email
     base_alias = os.getenv("SIGNUP_ALIAS_BASE", "")
-    email_domain = os.getenv("SIGNUP_EMAIL_DOMAIN", "nexify.com.hk")
+    email_domain = os.getenv("SIGNUP_EMAIL_DOMAIN", "gmail.com")
     email = f"{base_alias}+{datetime.now().strftime('%Y%m%d%H%M%S')}@{email_domain}"
     
     # 4. 填寫註冊資料

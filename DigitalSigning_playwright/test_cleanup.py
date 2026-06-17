@@ -1,18 +1,24 @@
 import os
 import time
+from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
 
+load_dotenv()
+
 def cleanup():
+    base = os.getenv("WEBSITE_URL", "https://sign.nextore.io")
+    email = os.getenv("LOGIN_DEFAULT_EMAIL", "")
+    password = os.getenv("LOGIN_DEFAULT_PASSWORD", "")
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         context = browser.new_context()
         page = context.new_page()
-        
+
         # Login
-        page.goto("https://sign.nextore.io/#/login")
-        page.get_by_role("textbox", name="Email").fill("pyu@nexify.com.hk")
+        page.goto(f"{base}/#/login")
+        page.get_by_role("textbox", name="Email").fill(email)
         page.get_by_role("button", name="Continue").click()
-        page.get_by_role("textbox", name="Password").fill("Zxc12345")
+        page.get_by_role("textbox", name="Password").fill(password)
         page.get_by_role("button", name="Login").click()
         
         page.wait_for_timeout(3000)

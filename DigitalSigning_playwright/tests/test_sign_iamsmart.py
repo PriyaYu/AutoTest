@@ -61,7 +61,7 @@ def test_sign_parallel_iamsmart(page, sample_pdf_path) -> None:
     page.get_by_text("Sign Up with iAM Smart").click()
     
     base_alias = os.getenv("SIGNUP_ALIAS_BASE", "")
-    email_domain = os.getenv("SIGNUP_EMAIL_DOMAIN", "nexify.com.hk")
+    email_domain = os.getenv("SIGNUP_EMAIL_DOMAIN", "gmail.com")
     new_account_email = f"{base_alias}+{datetime.now().strftime('%Y%m%d%H%M%S')}@{email_domain}"
     
     page.get_by_role("textbox").nth(1).fill(new_account_email)
