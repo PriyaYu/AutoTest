@@ -73,11 +73,14 @@ def _search(conn, recipient: str = "", subject: str = ""):
     applied when it looks like an email (IMAP TO is a substring match, so a plus
     alias works); a non-email recipient label is ignored and the subject carries
     the search."""
+    # Quote string values: an unquoted multi-word SUBJECT (or any value with
+    # spaces) makes the IMAP server reject the whole SEARCH ("Could not parse
+    # command"). SINCE is a bare date token and must stay unquoted.
     crit = ["SINCE", _since_date()]
     if recipient and "@" in recipient:
-        crit += ["TO", recipient]
+        crit += ["TO", '"%s"' % recipient]
     if subject:
-        crit += ["SUBJECT", subject]
+        crit += ["SUBJECT", '"%s"' % subject]
     typ, data = conn.search(None, *crit)
     if typ != "OK" or not data or not data[0]:
         return []
