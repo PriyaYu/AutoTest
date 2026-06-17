@@ -91,6 +91,9 @@ def fetch_verify_url_from_mailhog(recipient: str, timeout_seconds: int = None) -
     """Poll MailHog for the signing-task email to `recipient` and return its
     verify-otp activation URL, or '' if not found / MailHog unreachable. The
     recipient is unique per run, so no freshness baseline is needed."""
+    from flows.flow_imap_check import imap_enabled, imap_fetch_verify_url
+    if imap_enabled():
+        return imap_fetch_verify_url(recipient, timeout_seconds)
     timeout_seconds = timeout_seconds or int(os.getenv("MAIL_POLL_TIMEOUT", "60"))
     interval = int(os.getenv("MAIL_POLL_INTERVAL", "5"))
     deadline = time.time() + timeout_seconds
@@ -128,6 +131,9 @@ def confirm_mail_received(subject: str, recipient: str = "", title: str = "",
     MailHog itself is unreachable."""
     if not subject:
         raise ValueError("subject is required but not set")
+    from flows.flow_imap_check import imap_enabled, imap_confirm_mail_received
+    if imap_enabled():
+        return imap_confirm_mail_received(subject, recipient, title, timeout_seconds)
     timeout_seconds = timeout_seconds or int(os.getenv("MAIL_POLL_TIMEOUT", "60"))
     interval = int(os.getenv("MAIL_POLL_INTERVAL", "5"))
     recipient_is_email = "@" in recipient
