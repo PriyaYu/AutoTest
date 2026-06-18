@@ -3,8 +3,6 @@ import os
 import random
 import time
 
-import pytest
-
 from flows.flow_initiate_signing_request import initiate_signing_request
 from flows.flow_login import login
 from flows.flow_mail_check import confirm_mail_received
@@ -62,12 +60,6 @@ def test_review_approval(page, sample_pdf_path) -> None:
     reviewee_status = _poll_row(title)
     assert "Waiting" in reviewee_status, f"reviewee list status after approve: {reviewee_status!r}"
 
-    # The reviewee should be emailed the result, with the document name rendered
-    # into the body as our title. Backend delivery is currently INTERMITTENT (it
-    # sometimes renders and sends, sometimes the @Model.document_name template
-    # error recurs and no mail arrives), so tolerate a miss as xfail rather than a
-    # flaky failure; it passes whenever the mail actually arrives.
-    try:
-        confirm_mail_received("Document review result", recipient=reviewee_email, title=title)
-    except AssertionError:
-        pytest.xfail("App bug: 'Document review result' email delivery/render is intermittent")
+    # The reviewee is emailed the result, with the document name rendered into the
+    # body as our title.
+    confirm_mail_received("Document review result", recipient=reviewee_email, title=title)

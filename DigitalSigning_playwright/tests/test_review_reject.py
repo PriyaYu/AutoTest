@@ -2,8 +2,6 @@ import os
 import random
 import time
 
-import pytest
-
 from flows.flow_initiate_signing_request import initiate_signing_request
 from flows.flow_login import login
 from flows.flow_mail_check import confirm_mail_received
@@ -41,10 +39,8 @@ def test_review_reject(page, sample_pdf_path) -> None:
     login(page, email=reviewer_email, force_login=True)
     review_action(page, action="reject")
 
-    # After rejection both parties' list status should reflect it (Rejected /
-    # Declined). KNOWN BUG (pending engineer): the status cell is currently blank,
-    # so xfail until it renders a rejection label; then tighten these asserts.
-    # The list loads asynchronously, so poll for the row before reading.
+    # After rejection the list status reflects it (Rejected / Declined). The list
+    # loads asynchronously, so poll for the row before reading.
     def _poll_row(t, timeout=15):
         deadline = time.time() + timeout
         while time.time() < deadline:
@@ -59,16 +55,10 @@ def test_review_reject(page, sample_pdf_path) -> None:
     login(page, email=reviewee_email, force_login=True)
     reviewee_status = _poll_row(title)
     _reject_labels = ("Reject", "Declin")
-    if not any(k in reviewer_status for k in _reject_labels) and \
-            not any(k in reviewee_status for k in _reject_labels):
-        pytest.xfail(
-            f"App bug: reject list status blank/missing "
-            f"(reviewer={reviewer_status!r}, reviewee={reviewee_status!r})"
-        )
+    assert any(k in reviewer_status for k in _reject_labels) or \
+        any(k in reviewee_status for k in _reject_labels), \
+        f"reject list status missing a Rejected/Declined label " \
+        f"(reviewer={reviewer_status!r}, reviewee={reviewee_status!r})"
 
-    # Same review-result mail as approval; if reject doesn't email the reviewee
-    # either, xfail rather than block (auto-passes once the mail is sent).
-    try:
-        confirm_mail_received("Document review result", recipient=reviewee_email, title=title)
-    except AssertionError:
-        pytest.xfail("App bug: 'Document review result' email not sent to reviewee on review")
+    # The reviewee is emailed the review result.
+    confirm_mail_received("Document review result", recipient=reviewee_email, title=title)
